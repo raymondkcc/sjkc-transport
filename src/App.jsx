@@ -218,6 +218,10 @@ export default function App() {
   const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
   const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
 
+  // Driver Registration Form State
+  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phone: '', plate: '', gate: '', photo: null });
+  const [isCompressing, setIsCompressing] = useState(false);
+
   // Firebase Fetching States
   const [availableClasses, setAvailableClasses] = useState({});
   const [studentsDict, setStudentsDict] = useState({});
@@ -360,6 +364,71 @@ export default function App() {
     } catch (error) {
       console.error("Error saving document: ", error);
       setAlertMessage("Ralat semasa menghantar. Sila cuba lagi. / 提交时发生错误，请重试。");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Driver Image Compression Handler
+  const handleImageCompress = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsCompressing(true);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 400; // 限制最大宽度 400px 以节省空间
+        const MAX_HEIGHT = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // 压缩为 JPEG，质量设为 0.6，极大地缩小 Base64 字符串体积
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        setDriverInfo({...driverInfo, photo: compressedDataUrl});
+        setIsCompressing(false);
+      };
+    };
+  };
+
+  // Driver Submit Handler
+  const handleDriverSubmit = async () => {
+    if (!driverInfo.fullName || !driverInfo.plate) {
+       setAlertMessage("Sila lengkapkan borang. / 请完善表格。");
+       return;
+    }
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, "drivers_registrations"), {
+        ...driverInfo,
+        createdAt: serverTimestamp()
+      });
+      setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan / 司机资料注册成功!");
+      setDriverInfo({ fullName: '', nickname: '', phone: '', plate: '', gate: '', photo: null });
+      handleBack();
+    } catch (error) {
+      console.error("Error saving driver: ", error);
+      setAlertMessage("Ralat semasa menghantar. / 提交时发生错误，请重试。");
     } finally {
       setIsSubmitting(false);
     }
@@ -508,7 +577,8 @@ export default function App() {
           <Car size={100} className="absolute bottom-20 right-[-10px] text-yellow-600 opacity-20" />
           
           <div className="mb-6 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white z-10 overflow-hidden">
-            <img src="https://i.postimg.cc/SjbRb8KH/hq720-removebg-preview.png" alt="SJKC Sin Ming Logo" className="w-full h-full object-cover p-2" />
+            {/* Logo updated with object-cover and scale-110 to fit the circle better */}
+            <img src="https://i.postimg.cc/SjbRb8KH/hq720-removebg-preview.png" alt="SJKC Sin Ming Logo" className="w-full h-full object-cover scale-110" />
           </div>
 
           <div className="text-center z-10 mb-10 px-2">
@@ -648,29 +718,31 @@ export default function App() {
             <div className="space-y-5">
               <div>
                 <label className="block text-xs font-bold mb-1 text-gray-600">Nama Penuh Pemandu / 司机全名 (IC)</label>
-                <input type="text" placeholder="Contoh: Lim Ah Beng" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" />
+                <input type="text" placeholder="Contoh: Lim Ah Beng" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
               </div>
               
               <div>
                 <label className="block text-xs font-bold mb-1 text-gray-600">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
-                <input type="text" placeholder="Contoh: Uncle Ah Meng / Auntie Shirley" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" />
+                <input type="text" placeholder="Contoh: Uncle Ah Meng / Auntie Shirley" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
                 <p className="text-xs text-gray-500 mt-1">Nama ini akan dipaparkan dalam senarai awam.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1 text-gray-600">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" />
+                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" value={driverInfo.phone} onChange={e => setDriverInfo({...driverInfo, phone: e.target.value})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1 text-gray-600">No. Plat Kereta / 车牌号码</label>
-                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none font-bold uppercase" />
+                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none font-bold uppercase" value={driverInfo.plate} onChange={e => setDriverInfo({...driverInfo, plate: e.target.value})} />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold mb-1 text-gray-600">Muat Naik Gambar / 司机照片 (Pilihan/Optional)</label>
-                <input type="file" accept="image/*" className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200 transition" />
+                <input type="file" accept="image/*" onChange={handleImageCompress} className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200 transition" />
+                {isCompressing && <span className="block mt-2 text-xs text-blue-500 animate-pulse font-bold">Sedang memampatkan gambar... / 正在压缩图片...</span>}
+                {driverInfo.photo && !isCompressing && <span className="block mt-2 text-xs text-green-600 font-bold">✓ Gambar sedia dimuat naik / 图片已准备就绪</span>}
               </div>
 
               <div>
@@ -678,7 +750,7 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-3">
                   {['A3', 'B'].map(gate => (
                     <label key={gate} className="border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 focus-within:ring-2 ring-green-500 transition has-[:checked]:bg-green-100 has-[:checked]:border-green-500">
-                      <input type="radio" name="driverGate" value={gate} className="sr-only" />
+                      <input type="radio" name="driverGate" value={gate} checked={driverInfo.gate === gate} onChange={e => setDriverInfo({...driverInfo, gate: e.target.value})} className="sr-only" />
                       <span className="font-bold text-gray-800">Gate</span>
                       <span className="text-xl font-extrabold text-green-700">{gate}</span>
                     </label>
@@ -687,8 +759,8 @@ export default function App() {
               </div>
             </div>
 
-            <button onClick={() => { setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan / 司机资料注册成功!"); handleBack(); }} className="mt-8 w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 active:scale-95 transition-all text-lg flex justify-center items-center">
-              Daftar / 提交注册 <PlusCircle size={20} className="ml-2" />
+            <button onClick={handleDriverSubmit} disabled={isSubmitting || isCompressing} className="mt-8 w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 active:scale-95 transition-all text-lg flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed">
+              {isSubmitting ? <><Loader2 size={20} className="mr-2 animate-spin" /> Sedang Menyimpan / 正在保存...</> : <>Daftar / 提交注册 <PlusCircle size={20} className="ml-2" /></>}
             </button>
           </div>
         </div>

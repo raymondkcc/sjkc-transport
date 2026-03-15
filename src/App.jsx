@@ -24,25 +24,25 @@ const DisclaimerPopup = ({ onAccept }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
-        <div className="flex justify-center mb-4 text-red-600">
-          <ShieldAlert size={48} />
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300 ease-out">
+        <div className="flex justify-center mb-6 text-red-600 drop-shadow-md animate-pulse">
+          <ShieldAlert size={56} strokeWidth={1.5} />
         </div>
-        <h2 className="text-xl font-bold mb-4 text-center text-gray-900">Makluman / 通知</h2>
-        <div className="space-y-3 mb-6 bg-gray-50 p-4 rounded-xl">
-          <p className="text-sm text-gray-700 text-justify">
+        <h2 className="text-2xl font-extrabold mb-5 text-center text-gray-900 tracking-tight">Makluman / 通知</h2>
+        <div className="space-y-4 mb-8 bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
+          <p className="text-sm text-gray-700 text-justify leading-relaxed">
             <span className="font-bold text-blue-800">BM:</span> Pihak sekolah perlu mengumpul data ini demi keselamatan semua pelajar dan untuk tujuan rekod rasmi pengangkutan. Data anda akan disimpan dengan selamat.
           </p>
-          <p className="text-sm text-gray-700 text-justify border-t border-gray-200 pt-3">
+          <p className="text-sm text-gray-700 text-justify leading-relaxed border-t border-gray-200 pt-4">
             <span className="font-bold text-blue-800">中文:</span> 为了所有学生的安全以及官方交通记录的需要，校方需收集此数据。您的数据将被安全妥善保管。
           </p>
         </div>
-        <div className="flex items-center mb-6 bg-yellow-50 p-3 rounded-lg border border-yellow-200 cursor-pointer" onClick={() => setDontShow(!dontShow)}>
-          <input type="checkbox" checked={dontShow} readOnly className="mr-3 w-5 h-5 accent-yellow-600 cursor-pointer" />
+        <div className="flex items-center mb-6 bg-yellow-50/80 p-4 rounded-xl border border-yellow-200 cursor-pointer hover:bg-yellow-100 transition-colors duration-300" onClick={() => setDontShow(!dontShow)}>
+          <input type="checkbox" checked={dontShow} readOnly className="mr-3 w-5 h-5 accent-yellow-600 cursor-pointer transition-transform duration-200 hover:scale-110" />
           <span className="text-sm font-semibold text-yellow-800 select-none">Do not show again / 不要再显示 / Jangan tunjuk lagi</span>
         </div>
-        <button onClick={handleAccept} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg active:scale-95">
+        <button onClick={handleAccept} className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-2xl font-bold hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-300">
           Baik, saya faham / 好的，我明白
         </button>
       </div>
@@ -56,28 +56,28 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
   };
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-      <h3 className="font-bold mb-4 text-blue-800 text-lg flex items-center justify-between">
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 mb-6 relative overflow-hidden group">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-400 to-blue-600 opacity-80 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <h3 className="font-bold mb-5 text-blue-900 text-lg flex items-center justify-between">
         <div className="flex items-center">
-          <span className="bg-blue-100 text-blue-800 w-8 h-8 rounded-full flex items-center justify-center mr-2">{index + 1}</span>
-          Anak / 孩子
+          <span className="bg-blue-100 text-blue-800 w-9 h-9 rounded-full flex items-center justify-center mr-3 shadow-inner font-black">{index + 1}</span>
+          <span className="tracking-wide">Anak / 孩子</span>
         </div>
-        {isLoadingStudents && <Loader2 size={18} className="animate-spin text-blue-500" />}
+        {isLoadingStudents && <Loader2 size={20} className="animate-spin text-blue-500" />}
       </h3>
       
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-5 mb-5">
         <div>
-          <label className="block text-xs font-bold mb-1 text-gray-600">Tahun / 年级</label>
-          <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50" 
+          <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Tahun / 年级</label>
+          <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
             value={data.year} onChange={(e) => { handleChange('year', e.target.value); handleChange('kelas', ''); handleChange('name', ''); }} disabled={isLoadingStudents}>
             <option value="">Pilih / 选择</option>
             {Object.keys(availableClasses).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold mb-1 text-gray-600">Kelas / 班级</label>
-          <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50" 
+          <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Kelas / 班级</label>
+          <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
             value={data.kelas} onChange={(e) => { handleChange('kelas', e.target.value); handleChange('name', ''); }} disabled={!data.year || isLoadingStudents}>
             <option value="">Pilih / 选择</option>
             {data.year && availableClasses[data.year]?.map(c => <option key={c} value={c}>{c}</option>)}
@@ -85,18 +85,18 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-xs font-bold mb-1 text-gray-600">Nama Pelajar / 学生姓名</label>
-        <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50" 
+      <div className="mb-5">
+        <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Pelajar / 学生姓名</label>
+        <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
           value={data.name} onChange={(e) => handleChange('name', e.target.value)} disabled={!data.kelas || isLoadingStudents}>
           <option value="">Pilih / 选择</option>
           {data.kelas && studentsDict[`${data.year}-${data.kelas}`]?.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-xs font-bold mb-1 text-gray-600">Sesi / 班次</label>
-        <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={data.session} onChange={(e) => handleChange('session', e.target.value)}>
+      <div className="mb-6">
+        <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Sesi / 班次</label>
+        <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 cursor-pointer" value={data.session} onChange={(e) => handleChange('session', e.target.value)}>
           <option value="">Pilih / 选择</option>
           <option value="morning">Pagi / 上午班</option>
           <option value="afternoon">Petang / 下午班</option>
@@ -104,11 +104,14 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
       </div>
 
       {/* --- ARRIVAL --- */}
-      <div className="mb-5 bg-green-50/50 border border-green-200 p-4 rounded-xl">
-        <h4 className="font-bold text-green-800 mb-3 flex items-center border-b border-green-200 pb-2"><Bus size={18} className="mr-2" /> Perjalanan Datang / 来学校</h4>
-        <div className="mb-3">
-          <label className="block text-xs font-bold mb-1 text-green-700">Gate / 校门</label>
-          <select className="w-full p-2.5 border border-green-200 rounded-xl bg-white focus:ring-2 focus:ring-green-500 outline-none" value={data.arriveGate} onChange={(e) => handleChange('arriveGate', e.target.value)}>
+      <div className="mb-5 bg-gradient-to-br from-green-50 to-emerald-50/50 border border-green-100 p-5 rounded-2xl transition-all duration-300 hover:shadow-md">
+        <h4 className="font-extrabold text-green-800 mb-4 flex items-center border-b border-green-200/60 pb-3">
+          <div className="bg-green-100 p-1.5 rounded-lg mr-2"><Bus size={18} className="text-green-700" /></div> 
+          Perjalanan Datang / 来学校
+        </h4>
+        <div className="mb-4">
+          <label className="block text-xs font-bold mb-1.5 text-green-700 uppercase tracking-wider">Gate / 校门</label>
+          <select className="w-full p-3 border border-green-200 rounded-xl bg-white hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 cursor-pointer text-green-900" value={data.arriveGate} onChange={(e) => handleChange('arriveGate', e.target.value)}>
             <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A / A1 (Sendiri/自己载送)</option>
             <option value="A3">Gate A3</option>
@@ -116,26 +119,29 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           </select>
         </div>
         {(data.arriveGate === 'A3' || data.arriveGate === 'B') && (
-          <div className="animate-in fade-in slide-in-from-top-2 pt-2">
-            <label className="block text-xs font-bold mb-1 text-green-800">Pemandu / 载送司机</label>
-            <select className="w-full p-2.5 border border-green-300 rounded-xl mb-2 focus:ring-2 focus:ring-green-500 outline-none bg-white shadow-sm" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
+          <div className="animate-in fade-in slide-in-from-top-4 duration-500 pt-2">
+            <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
+            <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
               {driversList.map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
-               <input type="text" placeholder="Nyatakan Nama & Plat Kereta / 请注明" className="w-full p-2.5 border border-green-300 rounded-xl outline-none focus:ring-2 focus:ring-green-500 bg-white shadow-sm" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
+               <input type="text" placeholder="Nyatakan Nama & Plat Kereta / 请注明" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
             )}
           </div>
         )}
       </div>
 
       {/* --- DEPARTURE --- */}
-      <div className="mb-2 bg-orange-50/50 border border-orange-200 p-4 rounded-xl">
-        <h4 className="font-bold text-orange-800 mb-3 flex items-center border-b border-orange-200 pb-2"><Car size={18} className="mr-2" /> Perjalanan Balik / 离开学校</h4>
-        <div className="mb-3">
-          <label className="block text-xs font-bold mb-1 text-orange-700">Gate / 校门</label>
-          <select className="w-full p-2.5 border border-orange-200 rounded-xl bg-white focus:ring-2 focus:ring-orange-500 outline-none" value={data.leaveGate} onChange={(e) => handleChange('leaveGate', e.target.value)}>
+      <div className="mb-2 bg-gradient-to-br from-orange-50 to-amber-50/50 border border-orange-100 p-5 rounded-2xl transition-all duration-300 hover:shadow-md">
+        <h4 className="font-extrabold text-orange-800 mb-4 flex items-center border-b border-orange-200/60 pb-3">
+          <div className="bg-orange-100 p-1.5 rounded-lg mr-2"><Car size={18} className="text-orange-700" /></div> 
+          Perjalanan Balik / 离开学校
+        </h4>
+        <div className="mb-4">
+          <label className="block text-xs font-bold mb-1.5 text-orange-700 uppercase tracking-wider">Gate / 校门</label>
+          <select className="w-full p-3 border border-orange-200 rounded-xl bg-white hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 cursor-pointer text-orange-900" value={data.leaveGate} onChange={(e) => handleChange('leaveGate', e.target.value)}>
              <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A/A1 (Sendiri/自己载送)</option>
             <option value="A3">Gate A3</option>
@@ -144,19 +150,19 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         </div>
 
         {data.session === 'morning' && (data.leaveGate === 'A3' || data.leaveGate === 'B') && (
-          <div className="mb-4 flex items-center bg-yellow-50 p-4 rounded-xl border-2 border-yellow-400 shadow-sm animate-in fade-in slide-in-from-top-2">
-            <input type="checkbox" id={`round2-${index}`} checked={data.isRound2} onChange={(e) => handleChange('isRound2', e.target.checked)} className="mr-3 w-5 h-5 accent-yellow-600 cursor-pointer" />
+          <div className="mb-5 flex items-center bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-xl border border-yellow-300 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-all">
+            <input type="checkbox" id={`round2-${index}`} checked={data.isRound2} onChange={(e) => handleChange('isRound2', e.target.checked)} className="mr-3 w-5 h-5 accent-yellow-600 cursor-pointer transition-transform hover:scale-110" />
             <label htmlFor={`round2-${index}`} className="text-sm font-bold text-yellow-900 cursor-pointer select-none flex-1">Balik Pusingan Ke-2 / 放学第二轮载送</label>
           </div>
         )}
 
         {(data.leaveGate === 'A3' || data.leaveGate === 'B') && (
-          <div className="animate-in fade-in slide-in-from-top-2 pt-2">
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-bold text-orange-800">Pemandu / 载送司机</label>
+          <div className="animate-in fade-in slide-in-from-top-4 duration-500 pt-2">
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-xs font-bold text-orange-800 uppercase tracking-wider">Pemandu / 载送司机</label>
               {(data.arriveGate === 'A3' || data.arriveGate === 'B') && (
-                <label className="flex items-center text-xs font-bold text-orange-800 bg-white px-2 py-1.5 rounded-lg border border-orange-300 cursor-pointer shadow-sm hover:bg-orange-100 transition">
-                  <input type="checkbox" className="mr-2 accent-orange-600 w-4 h-4 cursor-pointer" checked={data.sameDriver} onChange={(e) => handleChange('sameDriver', e.target.checked)} />
+                <label className="flex items-center text-xs font-bold text-orange-800 bg-white px-3 py-1.5 rounded-lg border border-orange-200 cursor-pointer shadow-sm hover:bg-orange-100 hover:border-orange-300 transition-all duration-300">
+                  <input type="checkbox" className="mr-2 accent-orange-600 w-4 h-4 cursor-pointer transition-transform hover:scale-110" checked={data.sameDriver} onChange={(e) => handleChange('sameDriver', e.target.checked)} />
                   Sama / 来回一样
                 </label>
               )}
@@ -164,18 +170,18 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             
             {!data.sameDriver ? (
               <>
-                <select className="w-full p-2.5 border border-orange-300 rounded-xl mb-2 focus:ring-2 focus:ring-orange-500 outline-none bg-white shadow-sm" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
+                <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
                   {driversList.map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
-                   <input type="text" placeholder="Nyatakan Nama & Plat Kereta / 请注明" className="w-full p-2.5 border border-orange-300 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 bg-white shadow-sm" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
+                   <input type="text" placeholder="Nyatakan Nama & Plat Kereta / 请注明" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
                 )}
               </>
             ) : (
-              <div className="p-3 bg-white border border-orange-300 rounded-xl text-sm text-gray-500 italic flex items-center shadow-sm">
-                <span className="bg-gray-100 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center mr-2"><Bus size={12}/></span>
+              <div className="p-4 bg-white border border-orange-200 rounded-xl text-sm text-gray-500 italic flex items-center shadow-inner animate-in fade-in zoom-in-95 duration-300">
+                <span className="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center mr-3 shadow-sm"><Bus size={14}/></span>
                 Menggunakan pemandu yang sama (Datang).
               </div>
             )}
@@ -344,7 +350,7 @@ export default function App() {
   const handleParentSubmit = async () => {
     // Basic validation
     if (!parentInfo.name || !parentInfo.phone) {
-      setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga. / 请至少填写监护人姓名与电话号码。");
+      setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga. \n 请至少填写监护人姓名与电话号码。");
       return;
     }
     
@@ -355,7 +361,7 @@ export default function App() {
         children: childrenInfo,
         createdAt: serverTimestamp()
       });
-      setAlertMessage("Borang Berjaya Dihantar / 提交成功!");
+      setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
       // Reset form
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });
       setNumKids(1);
@@ -363,7 +369,7 @@ export default function App() {
       handleBack();
     } catch (error) {
       console.error("Error saving document: ", error);
-      setAlertMessage("Ralat semasa menghantar. Sila cuba lagi. / 提交时发生错误，请重试。");
+      setAlertMessage("Ralat semasa menghantar. Sila cuba lagi. \n 提交时发生错误，请重试。");
     } finally {
       setIsSubmitting(false);
     }
@@ -414,7 +420,7 @@ export default function App() {
   // Driver Submit Handler
   const handleDriverSubmit = async () => {
     if (!driverInfo.fullName || !driverInfo.plate) {
-       setAlertMessage("Sila lengkapkan borang. / 请完善表格。");
+       setAlertMessage("Sila lengkapkan borang. \n 请完善表格。");
        return;
     }
     setIsSubmitting(true);
@@ -423,12 +429,12 @@ export default function App() {
         ...driverInfo,
         createdAt: serverTimestamp()
       });
-      setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan / 司机资料注册成功!");
+      setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
       setDriverInfo({ fullName: '', nickname: '', phone: '', plate: '', gate: '', photo: null });
       handleBack();
     } catch (error) {
       console.error("Error saving driver: ", error);
-      setAlertMessage("Ralat semasa menghantar. / 提交时发生错误，请重试。");
+      setAlertMessage("Ralat semasa menghantar. \n 提交时发生错误，请重试。");
     } finally {
       setIsSubmitting(false);
     }
@@ -447,7 +453,7 @@ export default function App() {
       setAdminModalOpen(false);
       setAdminPwd('');
     } else {
-      setAlertMessage("Katalaluan Salah / 密码错误 (Incorrect Password)!");
+      setAlertMessage("Katalaluan Salah \n 密码错误 (Incorrect Password)!");
     }
   };
 
@@ -458,7 +464,7 @@ export default function App() {
       setDeleteSubmissionId(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
-      setAlertMessage("Gagal memadam rekod. / 无法删除记录，请检查数据库权限。");
+      setAlertMessage("Gagal memadam rekod. \n 无法删除记录，请检查数据库权限。");
       setDeleteSubmissionId(null);
     }
   };
@@ -471,12 +477,12 @@ export default function App() {
   };
 
   const navigateTo = (newView) => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setView(newView);
   }
 
   const handleBack = () => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (isAdmin) setView('admin');
     else setView('home');
   };
@@ -502,28 +508,31 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12 overflow-x-hidden">
       {showDisclaimer && <DisclaimerPopup onAccept={() => setShowDisclaimer(false)} />}
       
       {/* Alert Modal (Dual Language) */}
       {alertMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in text-center">
-            <div className="text-lg font-bold mb-6 text-gray-800 whitespace-pre-line">{alertMessage}</div>
-            <button onClick={() => setAlertMessage('')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold w-full transition">OK, Faham / 好的</button>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out text-center">
+            <div className="text-lg font-bold mb-8 text-gray-800 whitespace-pre-line leading-relaxed">{alertMessage}</div>
+            <button onClick={() => setAlertMessage('')} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-2xl font-bold w-full transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">OK, Faham / 好的</button>
           </div>
         </div>
       )}
 
       {/* Delete Submission Confirmation Modal (Dual Language) */}
       {deleteSubmissionId && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in">
-            <h3 className="font-bold text-xl mb-2 text-gray-900">Padam Rekod? / 删除记录？</h3>
-            <p className="text-gray-600 mb-6 text-sm">Adakah anda pasti mahu memadam rekod ini? Tindakan ini tidak boleh dibatalkan. / 您确定要删除此记录吗？此操作无法撤销。</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteSubmissionId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal / 取消</button>
-              <button onClick={() => handleDeleteSubmission(deleteSubmissionId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam / 删除</button>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+          <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4 text-red-600">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="font-extrabold text-xl mb-3 text-gray-900">Padam Rekod? / 删除记录？</h3>
+            <p className="text-gray-500 mb-8 text-sm leading-relaxed">Adakah anda pasti mahu memadam rekod ini? Tindakan ini tidak boleh dibatalkan. <br/><br/> 您确定要删除此记录吗？此操作无法撤销。</p>
+            <div className="flex gap-4">
+              <button onClick={() => setDeleteSubmissionId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-2xl font-bold transition-all duration-300 active:scale-95">Batal / 取消</button>
+              <button onClick={() => handleDeleteSubmission(deleteSubmissionId)} className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">Padam / 删除</button>
             </div>
           </div>
         </div>
@@ -531,13 +540,16 @@ export default function App() {
 
       {/* Delete Driver Confirmation Modal (Dual Language) */}
       {deleteDriverId && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in">
-            <h3 className="font-bold text-xl mb-2 text-gray-900">Padam Pemandu? / 删除司机？</h3>
-            <p className="text-gray-600 mb-6 text-sm">Adakah anda pasti mahu memadam pemandu ini daripada senarai? / 您确定要在列表中删除这位司机吗？</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteDriverId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal / 取消</button>
-              <button onClick={handleDeleteDriver} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam / 删除</button>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+          <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
+             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4 text-red-600">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="font-extrabold text-xl mb-3 text-gray-900">Padam Pemandu? / 删除司机？</h3>
+            <p className="text-gray-500 mb-8 text-sm leading-relaxed">Adakah anda pasti mahu memadam pemandu ini daripada senarai? <br/><br/> 您确定要在列表中删除这位司机吗？</p>
+            <div className="flex gap-4">
+              <button onClick={() => setDeleteDriverId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-2xl font-bold transition-all duration-300 active:scale-95">Batal / 取消</button>
+              <button onClick={handleDeleteDriver} className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">Padam / 删除</button>
             </div>
           </div>
         </div>
@@ -545,14 +557,19 @@ export default function App() {
 
       {/* Admin Login Modal */}
       {adminModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in">
-            <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center justify-center"><Lock size={20} className="mr-2 text-red-600"/> Admin Access</h2>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
+            <div className="flex justify-center mb-6">
+               <div className="bg-red-50 p-4 rounded-full text-red-600">
+                 <Lock size={32} strokeWidth={2} />
+               </div>
+            </div>
+            <h2 className="text-2xl font-extrabold mb-6 text-gray-900 text-center">Admin Access</h2>
             <form onSubmit={handleAdminLogin}>
-              <input type="password" placeholder="Kata Laluan / Password" className="w-full p-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-red-500 outline-none text-center tracking-widest" value={adminPwd} onChange={e => setAdminPwd(e.target.value)} autoFocus />
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setAdminModalOpen(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition">Batal / 取消</button>
-                <button type="submit" className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Login / 登录</button>
+              <input type="password" placeholder="Kata Laluan / Password" className="w-full p-4 border border-gray-200 rounded-2xl mb-6 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 outline-none text-center tracking-widest transition-all duration-300" value={adminPwd} onChange={e => setAdminPwd(e.target.value)} autoFocus />
+              <div className="flex gap-4">
+                <button type="button" onClick={() => setAdminModalOpen(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all duration-300 active:scale-95">Batal / 取消</button>
+                <button type="submit" className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">Login / 登录</button>
               </div>
             </form>
           </div>
@@ -560,76 +577,79 @@ export default function App() {
       )}
 
       {view !== 'home' && view !== 'admin' && (
-        <div className="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10 border-b border-gray-200">
-          <button onClick={handleBack} className="text-blue-600 font-bold flex items-center bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">
-            <ArrowLeft size={18} className="mr-1" /> Kembali
+        <div className="bg-white/80 backdrop-blur-lg shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-20 border-b border-gray-200 transition-all duration-300">
+          <button onClick={handleBack} className="text-blue-600 font-bold flex items-center bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors duration-300 group">
+            <ArrowLeft size={18} className="mr-1.5 group-hover:-translate-x-1 transition-transform duration-300" /> Kembali
           </button>
-          <div className="font-bold text-gray-800 flex items-center">
-            <span className="text-xl mr-2">🏫</span> SJKC Sin Ming
+          <div className="font-extrabold text-gray-800 flex items-center tracking-tight">
+            <span className="text-xl mr-2 animate-bounce duration-[2000ms]">🏫</span> SJKC Sin Ming
           </div>
         </div>
       )}
 
       {/* --- 1. HOME VIEW --- */}
       {view === 'home' && (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-300 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-          <Bus size={120} className="absolute top-10 left-[-20px] text-yellow-600 opacity-20 rotate-[-15deg]" />
-          <Car size={100} className="absolute bottom-20 right-[-10px] text-yellow-600 opacity-20" />
+        <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden animate-in fade-in duration-700">
+          {/* Background decorative icons */}
+          <Bus size={160} className="absolute top-10 left-[-30px] text-yellow-600/20 rotate-[-15deg] animate-pulse duration-[4000ms]" />
+          <Car size={120} className="absolute bottom-20 right-[-20px] text-yellow-600/20 animate-pulse duration-[3000ms]" />
+          <div className="absolute top-1/4 right-10 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-1/3 left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
           
-          <div className="mb-6 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white z-10 overflow-hidden">
+          <div className="mb-8 w-36 h-36 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white/50 z-10 overflow-hidden transform hover:scale-105 transition-transform duration-500 hover:rotate-3">
             {/* Logo updated with object-cover and scale-110 to fit the circle better */}
-            <img src="https://i.postimg.cc/SjbRb8KH/hq720-removebg-preview.png" alt="SJKC Sin Ming Logo" className="w-full h-full object-cover scale-110" />
+            <img src="https://i.postimg.cc/SjbRb8KH/hq720-removebg-preview.png" alt="SJKC Sin Ming Logo" className="w-full h-full object-cover scale-110 transition-transform duration-700 hover:scale-125" />
           </div>
 
-          <div className="text-center z-10 mb-10 px-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight drop-shadow-sm">Sistem Pengangkutan SJKC Sin Ming</h1>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mt-2 opacity-90">新明华小交通管理系统</h2>
+          <div className="text-center z-10 mb-12 px-4 animate-in slide-in-from-bottom-6 fade-in duration-700 delay-100">
+            <h1 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight drop-shadow-sm mb-2">Sistem Pengangkutan SJKC Sin Ming</h1>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 opacity-90 drop-shadow-sm">新明华小交通管理系统</h2>
           </div>
 
-          <div className="w-full max-w-md space-y-4 z-10">
-            <button onClick={() => navigateTo('parentForm')} className="w-full bg-white text-gray-900 font-bold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center border-2 border-transparent hover:border-blue-500 text-left group">
-              <div className="bg-blue-100 p-3 rounded-xl mr-4 group-hover:bg-blue-500 group-hover:text-white transition">
-                <Users size={24} />
+          <div className="w-full max-w-md space-y-5 z-10">
+            <button onClick={() => navigateTo('parentForm')} className="w-full bg-white/95 backdrop-blur text-gray-900 font-bold py-4 px-6 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 flex items-center border border-white/40 hover:border-blue-400 text-left group animate-in slide-in-from-bottom-8 fade-in duration-700 delay-200">
+              <div className="bg-blue-50 p-3.5 rounded-2xl mr-5 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300 shadow-sm group-hover:shadow-blue-500/40 group-hover:scale-110">
+                <Users size={26} strokeWidth={2.5} />
               </div>
               <div>
-                <div className="text-lg">Borang Maklumat Ibu Bapa</div>
-                <div className="text-sm font-normal text-gray-500">家长/监护人填写表格</div>
+                <div className="text-lg font-extrabold text-gray-900">Borang Maklumat Ibu Bapa</div>
+                <div className="text-sm font-medium text-gray-500 mt-0.5">家长/监护人填写表格</div>
               </div>
             </button>
             
             <button 
               onClick={() => { if(isDriverFormOpen || isAdmin) navigateTo('driverForm'); }} 
-              className={`w-full bg-white text-gray-900 font-bold py-4 px-6 rounded-2xl shadow-lg transition-all flex items-center border-2 text-left group ${(!isDriverFormOpen && !isAdmin) ? 'opacity-75 cursor-not-allowed border-transparent' : 'hover:shadow-xl hover:-translate-y-1 border-transparent hover:border-green-500'}`}
+              className={`w-full bg-white/95 backdrop-blur text-gray-900 font-bold py-4 px-6 rounded-3xl shadow-xl transition-all duration-300 flex items-center border text-left group animate-in slide-in-from-bottom-8 fade-in duration-700 delay-300 ${(!isDriverFormOpen && !isAdmin) ? 'opacity-70 cursor-not-allowed border-transparent grayscale-[30%]' : 'hover:shadow-2xl hover:-translate-y-1.5 active:scale-95 active:translate-y-0 border-white/40 hover:border-green-400'}`}
             >
-              <div className={`p-3 rounded-xl mr-4 transition ${isDriverFormOpen || isAdmin ? 'bg-green-100 group-hover:bg-green-500 group-hover:text-white' : 'bg-gray-200 text-gray-500'}`}>
-                <FileText size={24} />
+              <div className={`p-3.5 rounded-2xl mr-5 transition-all duration-300 shadow-sm ${isDriverFormOpen || isAdmin ? 'bg-green-50 group-hover:bg-green-500 group-hover:text-white group-hover:shadow-green-500/40 group-hover:scale-110' : 'bg-gray-100 text-gray-400'}`}>
+                <FileText size={26} strokeWidth={2.5} />
               </div>
               <div className="flex-1">
-                <div className="text-lg flex items-center justify-between">
+                <div className="text-lg font-extrabold text-gray-900 flex items-center justify-between">
                   Pendaftaran Pemandu
-                  {!isDriverFormOpen && <span className="bg-red-100 text-red-600 text-xs py-1 px-2 rounded-lg border border-red-200 font-extrabold tracking-wider">CLOSED</span>}
+                  {!isDriverFormOpen && <span className="bg-red-100 text-red-600 text-[10px] py-1 px-2.5 rounded-lg border border-red-200 font-black tracking-widest uppercase shadow-sm">Closed</span>}
                 </div>
-                <div className="text-sm font-normal text-gray-500">司机注册 / 更新表格</div>
+                <div className="text-sm font-medium text-gray-500 mt-0.5">司机注册 / 更新表格</div>
               </div>
             </button>
 
-            <button onClick={() => navigateTo('driverList')} className="w-full bg-white text-gray-900 font-bold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center border-2 border-transparent hover:border-purple-500 text-left group">
-              <div className="bg-purple-100 p-3 rounded-xl mr-4 group-hover:bg-purple-500 group-hover:text-white transition">
-                <Bus size={24} />
+            <button onClick={() => navigateTo('driverList')} className="w-full bg-white/95 backdrop-blur text-gray-900 font-bold py-4 px-6 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-1.5 active:scale-95 active:translate-y-0 transition-all duration-300 flex items-center border border-white/40 hover:border-purple-400 text-left group animate-in slide-in-from-bottom-8 fade-in duration-700 delay-500">
+              <div className="bg-purple-50 p-3.5 rounded-2xl mr-5 group-hover:bg-purple-500 group-hover:text-white transition-colors duration-300 shadow-sm group-hover:shadow-purple-500/40 group-hover:scale-110">
+                <Bus size={26} strokeWidth={2.5} />
               </div>
               <div>
-                <div className="text-lg">Senarai Pemandu</div>
-                <div className="text-sm font-normal text-gray-500">公共载送方列表</div>
+                <div className="text-lg font-extrabold text-gray-900">Senarai Pemandu</div>
+                <div className="text-sm font-medium text-gray-500 mt-0.5">公共载送方列表</div>
               </div>
             </button>
           </div>
           
-          <div className="mt-12 flex flex-col items-center z-10">
-            <div className="text-sm font-semibold text-yellow-900 opacity-70">
+          <div className="mt-14 flex flex-col items-center z-10 animate-in fade-in duration-1000 delay-700">
+            <div className="text-sm font-bold text-yellow-900/60 tracking-wide">
               © {new Date().getFullYear()} SJKC Sin Ming, Puchong
             </div>
-            <button onClick={() => setAdminModalOpen(true)} className="mt-2 text-xs font-bold tracking-widest uppercase text-yellow-800 opacity-40 hover:opacity-100 transition-opacity">
-              Admin
+            <button onClick={() => setAdminModalOpen(true)} className="mt-3 text-xs font-black tracking-widest uppercase text-yellow-800/30 hover:text-yellow-900 transition-colors duration-300 py-2 px-4 rounded-full hover:bg-yellow-600/10">
+              Admin Access
             </button>
           </div>
         </div>
@@ -637,32 +657,32 @@ export default function App() {
 
       {/* --- 2. PARENT DATA COLLECTION FORM --- */}
       {view === 'parentForm' && (
-        <div className="max-w-xl mx-auto p-4 animate-in fade-in">
-          <div className="text-center mb-6 mt-2">
-            <h2 className="text-2xl font-extrabold text-gray-900">Borang Ibu Bapa</h2>
-            <p className="text-gray-600 font-medium">家长/监护人交通资料收集</p>
+        <div className="max-w-xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Borang Ibu Bapa</h2>
+            <p className="text-gray-500 font-bold mt-1 tracking-wide">家长/监护人交通资料收集</p>
           </div>
           
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
-            <h3 className="font-bold mb-5 text-lg flex items-center text-gray-800"><Users size={20} className="mr-2 text-blue-600" /> Maklumat Penjaga / 监护人资料</h3>
-            <div className="space-y-4">
+          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 mb-6 relative overflow-hidden transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-blue-400"></div>
+            <h3 className="font-extrabold mb-6 text-xl flex items-center text-gray-800 tracking-tight"><Users size={22} className="mr-2.5 text-blue-500 drop-shadow-sm" /> Maklumat Penjaga / 监护人资料</h3>
+            <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">Nama Penuh / 全名</label>
-                <input type="text" placeholder="Contoh: Tan Ah Kao" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={parentInfo.name} onChange={e => setParentInfo({...parentInfo, name: e.target.value})} />
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh / 全名</label>
+                <input type="text" placeholder="Contoh: Tan Ah Kao" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.name} onChange={e => setParentInfo({...parentInfo, name: e.target.value})} />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">No. Kad Pengenalan / 身份证号码</label>
-                <input type="text" placeholder="Contoh: 880101-10-5555" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={parentInfo.ic} onChange={e => setParentInfo({...parentInfo, ic: e.target.value})} />
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Kad Pengenalan / 身份证号码</label>
+                <input type="text" placeholder="Contoh: 880101-10-5555" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.ic} onChange={e => setParentInfo({...parentInfo, ic: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1 text-gray-600">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: e.target.value})} />
+                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
+                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: e.target.value})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1 text-gray-600">Hubungan / 关系</label>
-                  <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={parentInfo.relation} onChange={e => setParentInfo({...parentInfo, relation: e.target.value})}>
+                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Hubungan / 关系</label>
+                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 cursor-pointer" value={parentInfo.relation} onChange={e => setParentInfo({...parentInfo, relation: e.target.value})}>
                     <option value="">Pilih / 选择</option>
                     <option value="IbuBapa">IbuBapa / 父母</option>
                     <option value="Penjaga">Penjaga / 监护人</option>
@@ -670,16 +690,16 @@ export default function App() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">Alamat Rumah / 家庭住址</label>
-                <textarea placeholder="Alamat penuh..." className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" rows="2" value={parentInfo.address} onChange={e => setParentInfo({...parentInfo, address: e.target.value})}></textarea>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Alamat Rumah / 家庭住址</label>
+                <textarea placeholder="Alamat penuh..." className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" rows="2" value={parentInfo.address} onChange={e => setParentInfo({...parentInfo, address: e.target.value})}></textarea>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
-            <label className="block font-bold mb-2 text-gray-800 text-lg">Jumlah Anak di Sekolah Ini / 本校就读孩子数量</label>
-            <p className="text-xs text-gray-500 mb-4">Sila pilih bilangan anak anda / 请选择</p>
-            <select className="w-full p-3.5 border border-blue-200 rounded-xl bg-blue-50 text-blue-900 font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" value={numKids} onChange={(e) => handleNumKidsChange(parseInt(e.target.value))}>
+          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 mb-6 transition-shadow duration-300">
+            <label className="block font-extrabold mb-2 text-gray-900 text-lg tracking-tight">Jumlah Anak di Sekolah Ini / 本校就读孩子数量</label>
+            <p className="text-xs text-gray-500 mb-5 font-medium tracking-wide">Sila pilih bilangan anak anda / 请选择</p>
+            <select className="w-full p-4 border-2 border-blue-100 rounded-2xl bg-blue-50/50 hover:bg-blue-50 text-blue-900 font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer transition-all duration-300" value={numKids} onChange={(e) => handleNumKidsChange(parseInt(e.target.value))}>
               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} Orang / 人</option>)}
             </select>
           </div>
@@ -694,73 +714,73 @@ export default function App() {
             ))}
           </div>
 
-          <button onClick={handleParentSubmit} disabled={isSubmitting} className="mt-8 w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-lg flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed">
-            {isSubmitting ? <><Loader2 size={20} className="mr-2 animate-spin" /> Menghantar / 正在提交...</> : <>Hantar / 提交 <ArrowLeft size={20} className="ml-2 rotate-180" /></>}
+          <button onClick={handleParentSubmit} disabled={isSubmitting} className="mt-10 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
+            {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Menghantar / 正在提交...</> : <>Hantar / 提交 <ArrowLeft size={22} className="ml-2.5 rotate-180 group-hover:translate-x-1 transition-transform duration-300" /></>}
           </button>
         </div>
       )}
 
       {/* --- 3. DRIVER REGISTRATION FORM --- */}
       {view === 'driverForm' && (
-        <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in">
-          <div className="text-center mb-6 mt-2">
-            <h2 className="text-2xl font-extrabold text-gray-900">Pendaftaran Pemandu</h2>
-            <p className="text-gray-600 font-medium">司机注册与资料更新表格</p>
+        <div className="max-w-xl mx-auto p-4 pb-24 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
+            <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-green-500 to-emerald-400"></div>
             
-            <div className="bg-green-50 p-4 rounded-xl mb-6 text-sm text-green-800 border border-green-200">
+            <div className="bg-green-50/80 p-5 rounded-2xl mb-7 text-sm text-green-800 border border-green-100 font-medium leading-relaxed shadow-inner">
               Sila isi maklumat terkini anda untuk rujukan pihak sekolah and kemudahan ibu bapa. / 请填写您的最新资料，以便校方记录及方便家长查阅。
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
               <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">Nama Penuh Pemandu / 司机全名 (IC)</label>
-                <input type="text" placeholder="Contoh: Lim Ah Beng" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh Pemandu / 司机全名 (IC)</label>
+                <input type="text" placeholder="Contoh: Lim Ah Beng" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
               </div>
               
               <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
-                <input type="text" placeholder="Contoh: Uncle Ah Meng / Auntie Shirley" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
-                <p className="text-xs text-gray-500 mt-1">Nama ini akan dipaparkan dalam senarai awam.</p>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
+                <input type="text" placeholder="Contoh: Uncle Ah Meng / Auntie Shirley" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
+                <p className="text-xs text-gray-400 mt-2 font-medium">Nama ini akan dipaparkan dalam senarai awam.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1 text-gray-600">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" value={driverInfo.phone} onChange={e => setDriverInfo({...driverInfo, phone: e.target.value})} />
+                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
+                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.phone} onChange={e => setDriverInfo({...driverInfo, phone: e.target.value})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1 text-gray-600">No. Plat Kereta / 车牌号码</label>
-                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none font-bold uppercase" value={driverInfo.plate} onChange={e => setDriverInfo({...driverInfo, plate: e.target.value})} />
+                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Plat Kereta / 车牌号码</label>
+                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300" value={driverInfo.plate} onChange={e => setDriverInfo({...driverInfo, plate: e.target.value})} />
                 </div>
+              </div>
+
+              <div className="p-1">
+                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Muat Naik Gambar / 司机照片 (Pilihan/Optional)</label>
+                <input type="file" accept="image/*" onChange={handleImageCompress} className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-green-100 file:text-green-800 hover:file:bg-green-200 hover:border-green-300 transition-all duration-300 cursor-pointer" />
+                {isCompressing && <span className="block mt-3 text-xs text-blue-500 animate-pulse font-bold flex items-center"><Loader2 size={12} className="mr-1 animate-spin"/> Sedang memampatkan gambar... / 正在压缩图片...</span>}
+                {driverInfo.photo && !isCompressing && <span className="block mt-3 text-xs text-green-600 font-bold flex items-center animate-in fade-in duration-300"><PlusCircle size={12} className="mr-1"/> Gambar sedia dimuat naik / 图片已准备就绪</span>}
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">Muat Naik Gambar / 司机照片 (Pilihan/Optional)</label>
-                <input type="file" accept="image/*" onChange={handleImageCompress} className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200 transition" />
-                {isCompressing && <span className="block mt-2 text-xs text-blue-500 animate-pulse font-bold">Sedang memampatkan gambar... / 正在压缩图片...</span>}
-                {driverInfo.photo && !isCompressing && <span className="block mt-2 text-xs text-green-600 font-bold">✓ Gambar sedia dimuat naik / 图片已准备就绪</span>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold mb-1 text-gray-600">Gate Menunggu / 等候校门 (Sila Pilih)</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
+                <div className="grid grid-cols-2 gap-4">
                   {['A3', 'B'].map(gate => (
-                    <label key={gate} className="border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 focus-within:ring-2 ring-green-500 transition has-[:checked]:bg-green-100 has-[:checked]:border-green-500">
+                    <label key={gate} className="border-2 border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 hover:border-green-200 focus-within:ring-4 ring-green-500/20 transition-all duration-300 has-[:checked]:bg-green-50/80 has-[:checked]:border-green-500 has-[:checked]:shadow-sm hover:-translate-y-0.5 active:scale-95">
                       <input type="radio" name="driverGate" value={gate} checked={driverInfo.gate === gate} onChange={e => setDriverInfo({...driverInfo, gate: e.target.value})} className="sr-only" />
-                      <span className="font-bold text-gray-800">Gate</span>
-                      <span className="text-xl font-extrabold text-green-700">{gate}</span>
+                      <span className="font-bold text-gray-500 tracking-wide mb-1">Gate</span>
+                      <span className="text-2xl font-black text-gray-900">{gate}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
 
-            <button onClick={handleDriverSubmit} disabled={isSubmitting || isCompressing} className="mt-8 w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 active:scale-95 transition-all text-lg flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed">
-              {isSubmitting ? <><Loader2 size={20} className="mr-2 animate-spin" /> Sedang Menyimpan / 正在保存...</> : <>Daftar / 提交注册 <PlusCircle size={20} className="ml-2" /></>}
+            <button onClick={handleDriverSubmit} disabled={isSubmitting || isCompressing} className="mt-10 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
+              {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Sedang Menyimpan / 正在保存...</> : <>Daftar / 提交注册 <PlusCircle size={22} className="ml-2.5 group-hover:rotate-90 transition-transform duration-500" /></>}
             </button>
           </div>
         </div>
@@ -768,63 +788,63 @@ export default function App() {
 
       {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
       {view === 'driverList' && (
-        <div className="max-w-4xl mx-auto p-4 animate-in fade-in">
-          <div className="text-center mb-6 mt-2">
-            <h2 className="text-2xl font-extrabold text-gray-900">Senarai Pemandu</h2>
-            <p className="text-gray-600 font-medium">载送方公共列表</p>
+        <div className="max-w-4xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Senarai Pemandu</h2>
+            <p className="text-gray-500 font-bold mt-1 tracking-wide">载送方公共列表</p>
           </div>
           
-          <div className="relative mb-6 max-w-xl mx-auto">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
+          <div className="relative mb-8 max-w-xl mx-auto group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search size={20} className="text-gray-400 group-focus-within:text-purple-500 transition-colors duration-300" />
             </div>
-            <input type="text" placeholder="Cari nama pemandu atau plat kereta..." className="w-full pl-10 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 outline-none shadow-sm" />
+            <input type="text" placeholder="Cari nama pemandu atau plat kereta..." className="w-full pl-12 p-4 border border-gray-200 rounded-2xl bg-white hover:border-purple-300 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none shadow-sm transition-all duration-300 font-medium" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <div className="bg-green-100 text-green-800 font-bold text-center py-2.5 rounded-xl mb-4 shadow-sm border border-green-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
+              <div className="bg-gradient-to-r from-green-100 to-green-50 text-green-800 font-black text-center py-3.5 rounded-2xl mb-5 shadow-sm border border-green-200/60 uppercase tracking-widest">
                 Gate A3
               </div>
               <div className="space-y-4">
-                {driversList.filter(d => d.gate === 'A3').map((driver) => (
-                  <div key={driver.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
-                    <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-green-100">
-                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
+                {driversList.filter(d => d.gate === 'A3').map((driver, i) => (
+                  <div key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                    <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={28} strokeWidth={1.5} />}
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-lg text-gray-900">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-600 mb-1">{driver.hp}</div>
+                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300">{driver.nickname}</div>
+                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.hp}</div>
                       <div className="flex items-center">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-mono text-xs font-bold">{driver.plate}</span>
+                        <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
                       </div>
                     </div>
                   </div>
                 ))}
-                {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-500 text-center py-4">Tiada pemandu.</div>}
+                {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
               </div>
             </div>
 
-            <div>
-              <div className="bg-blue-100 text-blue-800 font-bold text-center py-2.5 rounded-xl mb-4 shadow-sm border border-blue-200">
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-200">
+              <div className="bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 font-black text-center py-3.5 rounded-2xl mb-5 shadow-sm border border-blue-200/60 uppercase tracking-widest">
                 Gate B
               </div>
               <div className="space-y-4">
-                {driversList.filter(d => d.gate === 'B').map((driver) => (
-                  <div key={driver.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-blue-100">
-                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
+                {driversList.filter(d => d.gate === 'B').map((driver, i) => (
+                  <div key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={28} strokeWidth={1.5} />}
                     </div>
                     <div className="flex-1">
-                      <div className="font-bold text-lg text-gray-900">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-600 mb-1">{driver.hp}</div>
+                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{driver.nickname}</div>
+                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.hp}</div>
                       <div className="flex items-center">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-mono text-xs font-bold">{driver.plate}</span>
+                        <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
                       </div>
                     </div>
                   </div>
                 ))}
-                {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-500 text-center py-4">Tiada pemandu.</div>}
+                {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
               </div>
             </div>
           </div>
@@ -833,68 +853,69 @@ export default function App() {
 
       {/* --- 5. ADMIN VIEW (Protected) --- */}
       {view === 'admin' && (
-        <div className="max-w-4xl mx-auto p-4 animate-in fade-in zoom-in-95">
-          <div className="bg-gray-900 text-white p-5 rounded-2xl shadow-lg mb-6 flex justify-between items-center bg-pattern">
-            <div className="flex items-center">
-              <ShieldAlert className="text-red-500 mr-3" size={28} />
+        <div className="max-w-5xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
+          <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-xl mb-8 flex justify-between items-center relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+            <div className="flex items-center z-10">
+              <ShieldAlert className="text-red-500 mr-4 drop-shadow-lg" size={32} />
               <div>
-                <h2 className="text-xl font-bold">Admin Panel</h2>
-                <div className="text-xs text-gray-400">SJKC Sin Ming Transport System</div>
+                <h2 className="text-2xl font-black tracking-tight">Admin Panel</h2>
+                <div className="text-xs text-gray-400 font-medium tracking-wide mt-0.5">SJKC Sin Ming Transport System</div>
               </div>
             </div>
-            <button onClick={() => { setIsAdmin(false); navigateTo('home'); }} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center transition">
-              <LogOut size={16} className="mr-2" /> Logout / 登出
+            <button onClick={() => { setIsAdmin(false); navigateTo('home'); }} className="bg-white/10 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center transition-all duration-300 hover:shadow-lg active:scale-95 z-10 border border-white/10 hover:border-red-500">
+              <LogOut size={16} className="mr-2" /> Logout
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* 左侧区域：搜索控制 & 系统设置 */}
-            <div className="space-y-6 h-fit">
+            <div className="lg:col-span-4 space-y-6 h-fit">
               {/* Search Controls */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                <h3 className="font-bold text-lg mb-4 flex items-center"><Search size={18} className="mr-2 text-blue-500"/> Carian / 搜索与过滤</h3>
-                <input type="text" placeholder="Cari nama ibu bapa, IC, atau murid... / 搜索家长姓名、IC 或学生..." className="w-full p-3 border border-gray-200 rounded-xl mb-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                <div className="relative mb-4">
-                  <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
-                    <option value="">Semua Pemandu (All Drivers) / 所有司机</option>
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
+                <input type="text" placeholder="Cari nama ibu bapa, IC, murid..." className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <div className="relative mb-5">
+                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
+                    <option value="">Semua Pemandu / 所有司机</option>
                     {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname}</option>)}
                   </select>
                 </div>
-                <div className="text-sm font-semibold text-gray-500 text-center bg-gray-100 py-2 rounded-lg">
-                  Jumpa / 找到: <span className="text-blue-600 font-bold">{filteredSubmissions.length}</span> rekod / 条记录
+                <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">
+                  Jumpa / 找到: <span className="text-blue-600 font-black text-base">{filteredSubmissions.length}</span> rekod
                 </div>
               </div>
 
               {/* Manage Drivers */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                <h3 className="font-bold text-lg mb-4 flex items-center"><Bus size={18} className="mr-2 text-purple-500"/> Senarai Pemandu / 司机列表</h3>
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Bus size={20} className="mr-2.5 text-purple-500"/> Senarai Pemandu</h3>
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                   {driversList.map(driver => (
-                    <div key={driver.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
                       <div className="overflow-hidden pr-2">
                         <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">Gate: {driver.gate} | Plat: {driver.plate}</div>
+                        <div className="text-xs font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{driver.plate}</span></div>
                       </div>
-                      <button onClick={() => setDeleteDriverId(driver.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition flex-shrink-0" title="Padam Pemandu">
-                        <Trash2 size={18} />
+                      <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 flex-shrink-0 opacity-50 group-hover:opacity-100" title="Padam Pemandu">
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   ))}
-                  {driversList.length === 0 && <div className="text-sm text-gray-500 text-center py-4">Tiada pemandu. / 暂无司机。</div>}
+                  {driversList.length === 0 && <div className="text-sm font-medium text-gray-400 text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
                 </div>
               </div>
 
               {/* System Settings */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                <h3 className="font-bold text-lg mb-4 flex items-center">Tetapan Sistem / 系统设置</h3>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 gap-4">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900">Tetapan / 设置</h3>
+                <div className="flex flex-col gap-3">
                   <div>
-                    <div className="font-bold text-gray-800">Status Pendaftaran Pemandu</div>
-                    <div className="text-xs text-gray-500 mt-1">Buka/tutup borang pendaftaran awam.</div>
+                    <div className="font-bold text-gray-800 text-sm">Pendaftaran Pemandu</div>
+                    <div className="text-xs text-gray-500 mt-0.5 mb-3">Buka/tutup borang awam.</div>
                   </div>
                   <button 
                     onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
-                    className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-bold text-sm transition ${isDriverFormOpen ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border border-green-200'}`}
                   >
                     {isDriverFormOpen ? 'Tutup Borang (Close)' : 'Buka Borang (Open)'}
                   </button>
@@ -903,60 +924,67 @@ export default function App() {
             </div>
 
             {/* 右侧区域：Results List */}
-            <div className="space-y-4">
+            <div className="lg:col-span-8 space-y-5">
               {isFetchingAdmin ? (
-                <div className="flex flex-col items-center justify-center p-10 bg-white rounded-2xl border border-gray-200">
-                  <Loader2 size={32} className="animate-spin text-blue-500 mb-3" />
-                  <p className="text-gray-500 font-bold">Memuat turun data / 正在加载数据...</p>
+                <div className="flex flex-col items-center justify-center p-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                  <Loader2 size={40} className="animate-spin text-blue-500 mb-4" />
+                  <p className="text-gray-500 font-bold tracking-wide">Memuat turun data...</p>
                 </div>
               ) : filteredSubmissions.length === 0 ? (
-                <div className="bg-white p-8 rounded-2xl text-center border border-gray-200 shadow-sm text-gray-500">
+                <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-gray-300 shadow-sm text-gray-400 font-medium">
+                  <FileText size={48} className="mx-auto mb-4 opacity-20" />
                   Tiada rekod dijumpai / 未找到任何记录。
                 </div>
               ) : (
                 filteredSubmissions.map(sub => (
-                  <div key={sub.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                  <div key={sub.id} className="bg-white p-6 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-all duration-300 group">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-400 to-indigo-500 opacity-80"></div>
                     
                     {/* Header: Parent Info & Delete */}
-                    <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
+                    <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
                       <div>
-                        <h4 className="font-bold text-lg text-gray-900">{sub.parent?.name || "Tiada Nama"} <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full ml-1">{sub.parent?.relation}</span></h4>
-                        <div className="text-sm font-semibold text-gray-600 mt-0.5">{sub.parent?.phone} | IC: {sub.parent?.ic}</div>
+                        <h4 className="font-extrabold text-xl text-gray-900 tracking-tight flex items-center">
+                          {sub.parent?.name || "Tiada Nama"} 
+                          <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg ml-3 tracking-wide">{sub.parent?.relation}</span>
+                        </h4>
+                        <div className="text-sm font-semibold text-gray-500 mt-1.5 flex items-center">
+                          <span className="bg-gray-50 px-2 py-0.5 rounded border border-gray-200 mr-2">{sub.parent?.phone}</span> 
+                          IC: {sub.parent?.ic}
+                        </div>
                       </div>
-                      <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition active:scale-95" title="Padam Rekod">
+                      <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 active:scale-95" title="Padam Rekod">
                         <Trash2 size={18} />
                       </button>
                     </div>
 
                     {/* Children List */}
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {(sub.children || []).map((c, i) => {
                         const actualLeaveDriver = c.sameDriver ? c.arriveDriver : c.leaveDriver;
                         const actualLeaveOther = c.sameDriver ? c.arriveDriverOther : c.leaveDriverOther;
                         
                         return (
-                          <div key={i} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="font-bold text-blue-800 text-sm mb-1.5 flex items-center">
-                              <span className="w-5 h-5 bg-blue-200 text-blue-800 flex items-center justify-center rounded-full text-xs mr-2">{i+1}</span>
-                              {c.name || "Nama tidak diisi"} <span className="text-gray-500 font-normal ml-1">({c.year} {c.kelas}) - {c.session}</span>
+                          <div key={i} className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 hover:bg-white hover:border-gray-200 transition-colors duration-300">
+                            <div className="font-extrabold text-blue-900 text-sm mb-2.5 flex items-center">
+                              <span className="w-6 h-6 bg-blue-100 text-blue-800 flex items-center justify-center rounded-full text-xs mr-2.5 shadow-inner">{i+1}</span>
+                              {c.name || "Nama tidak diisi"} <span className="text-gray-500 font-medium ml-2">({c.year} {c.kelas}) - {c.session}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs font-medium">
-                              <div className="bg-green-50 text-green-800 p-2 rounded-lg border border-green-100">
-                                <span className="block text-green-600/70 mb-0.5 font-bold">Datang ({c.arriveGate}):</span>
+                            <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
+                              <div className="bg-green-50/50 text-green-900 p-3 rounded-xl border border-green-100">
+                                <span className="block text-green-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Datang ({c.arriveGate})</span>
                                 {c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver || "-"}
                               </div>
-                              <div className="bg-orange-50 text-orange-800 p-2 rounded-lg border border-orange-100">
-                                <span className="block text-orange-600/70 mb-0.5 font-bold">Balik ({c.leaveGate}):</span>
+                              <div className="bg-orange-50/50 text-orange-900 p-3 rounded-xl border border-orange-100">
+                                <span className="block text-orange-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Balik ({c.leaveGate})</span>
                                 {actualLeaveDriver === 'others' ? actualLeaveOther : actualLeaveDriver || "-"}
-                                {c.isRound2 && <span className="ml-1 text-orange-600">(Pusingan 2)</span>}
+                                {c.isRound2 && <span className="ml-1.5 text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">(Pusingan 2)</span>}
                               </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-3 text-right">ID: {sub.id}</div>
+                    <div className="text-[10px] font-mono text-gray-300 mt-4 text-right">ID: {sub.id}</div>
                   </div>
                 ))
               )}

@@ -4,15 +4,12 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
-// =========================================================================
-// ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
-// 当您将此代码复制到 VS Code 时，请取消注释下面这行引入真实数据库的代码：
-// import { kehadiranDb, kehadiranAuth } from './firebase';
-// 并且您可以安全地删除或注释掉下方 try...catch 区块中为了预览而设置的临时代码。
-// =========================================================================
-
 import { kehadiranDb, kehadiranAuth } from './firebase';
-  
+
+// --- MOCK DATA ---
+const mockDrivers = [
+  { nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
+// ... the rest of your mockDrivers code continues here ...
   const apps = getApps();
   const existingApp = apps.find(app => app.name === "Kehadiran");
   if (!existingApp) {

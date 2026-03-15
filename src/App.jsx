@@ -589,15 +589,20 @@ export default function App() {
 
       {/* --- 1. HOME VIEW --- */}
       {view === 'home' && (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden animate-in fade-in duration-700">
+        <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-500 ease-out">
+          
+          {/* Lava Lamp Background Elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div className="absolute -top-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full bg-amber-300/50 mix-blend-multiply filter blur-[80px] animate-pulse" style={{ animationDuration: '6s' }}></div>
+            <div className="absolute top-1/4 -right-1/4 w-[70vw] h-[70vw] rounded-full bg-yellow-200/50 mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+            <div className="absolute -bottom-1/4 left-1/4 w-[80vw] h-[80vw] rounded-full bg-orange-300/40 mix-blend-multiply filter blur-[120px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }}></div>
+          </div>
+
           {/* Background decorative icons */}
-          <Bus size={160} className="absolute top-10 left-[-30px] text-yellow-600/20 rotate-[-15deg] animate-pulse duration-[4000ms]" />
-          <Car size={120} className="absolute bottom-20 right-[-20px] text-yellow-600/20 animate-pulse duration-[3000ms]" />
-          <div className="absolute top-1/4 right-10 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="absolute bottom-1/3 left-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+          <Bus size={160} className="absolute top-10 left-[-30px] text-yellow-600/20 rotate-[-15deg] animate-pulse duration-[4000ms] z-0" />
+          <Car size={120} className="absolute bottom-20 right-[-20px] text-yellow-600/20 animate-pulse duration-[3000ms] z-0" />
           
           <div className="mb-8 w-36 h-36 bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-white/50 z-10 overflow-hidden transform hover:scale-105 transition-transform duration-500 hover:rotate-3">
-            {/* Logo updated with object-cover and scale-110 to fit the circle better */}
             <img src="https://i.postimg.cc/SjbRb8KH/hq720-removebg-preview.png" alt="SJKC Sin Ming Logo" className="w-full h-full object-cover scale-110 transition-transform duration-700 hover:scale-125" />
           </div>
 
@@ -657,7 +662,7 @@ export default function App() {
 
       {/* --- 2. PARENT DATA COLLECTION FORM --- */}
       {view === 'parentForm' && (
-        <div className="max-w-xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+        <div className="max-w-xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Borang Ibu Bapa</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">家长/监护人交通资料收集</p>
@@ -722,7 +727,7 @@ export default function App() {
 
       {/* --- 3. DRIVER REGISTRATION FORM --- */}
       {view === 'driverForm' && (
-        <div className="max-w-xl mx-auto p-4 pb-24 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+        <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in zoom-in-95 duration-500 ease-out">
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
@@ -788,7 +793,7 @@ export default function App() {
 
       {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
       {view === 'driverList' && (
-        <div className="max-w-4xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+        <div className="max-w-4xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Senarai Pemandu</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">载送方公共列表</p>

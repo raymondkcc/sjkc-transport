@@ -3,7 +3,7 @@ import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, 
 import { doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 
-// This is the ONLY Firebase line you need here now:
+// 只有这一行是连接数据库的，不需要在下面重新定义或赋值
 import { kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- MOCK DATA ---
@@ -12,18 +12,6 @@ const mockDrivers = [
   { nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
   { nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
 ];
-
-// --- COMPONENTS ---
-  const apps = getApps();
-  const existingApp = apps.find(app => app.name === "Kehadiran");
-  if (!existingApp) {
-    const kehadiranApp = initializeApp(kehadiranConfig, "Kehadiran");
-    kehadiranDb = getFirestore(kehadiranApp);
-    kehadiranAuth = getAuth(kehadiranApp);
-  } else {
-    kehadiranDb = getFirestore(existingApp);
-    kehadiranAuth = getAuth(existingApp);
-  }
 
 // --- COMPONENTS ---
 
@@ -233,7 +221,7 @@ const ChildForm = ({ index, availableClasses, studentsDict, isLoadingStudents })
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
-  const [view, setView] = useState('home'); // 'home', 'parentForm', 'driverForm', 'driverList', 'admin'
+  const [view, setView] = useState('home'); 
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [numKids, setNumKids] = useState(1);
   
@@ -243,23 +231,19 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
 
-  // --- FIREBASE FETCHING STATES ---
   const [availableClasses, setAvailableClasses] = useState({});
   const [studentsDict, setStudentsDict] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
   useEffect(() => {
-    // 1. Disclaimer logic
     if (!localStorage.getItem('hideTransportDisclaimer')) {
       setShowDisclaimer(true);
     }
 
-    // 2. Fetch students from Kehadiran DB
     const fetchStudentsFromKehadiran = async () => {
       setIsLoadingStudents(true);
       
-      // 如果是在预览面板（使用 dummy key），直接加载备用测试数据
-      if (!kehadiranDb || !kehadiranAuth || kehadiranDb.app.options.apiKey === "preview-dummy-key") {
+      if (!kehadiranDb || !kehadiranAuth) {
         setAvailableClasses({"1": ["Mawar", "Melati"], "6": ["DE"]});
         setStudentsDict({
           "1-Mawar": ["Ali bin Abu", "Muthusamy"], 
@@ -271,7 +255,6 @@ export default function App() {
       }
 
       try {
-        // 在查询 Firestore 之前先进行匿名登录以获取访问权限
         await signInAnonymously(kehadiranAuth);
         
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
@@ -286,7 +269,6 @@ export default function App() {
             const fullClass = student.class || ""; 
             const name = student.name || "Unknown";
             
-            // Extract Year and Class (e.g., "6 DE" -> Year 6, Class DE)
             const match = fullClass.match(/^(\d+)\s*(.*)/);
             let year = "Lain-lain";
             let className = fullClass;
@@ -296,17 +278,14 @@ export default function App() {
               className = match[2] || fullClass;
             }
 
-            // Group Classes by Year
             if (!tempClasses[year]) tempClasses[year] = new Set();
             tempClasses[year].add(className);
 
-            // Group Students by Year-Class key
             const dictKey = `${year}-${className}`;
             if (!tempStudents[dictKey]) tempStudents[dictKey] = [];
             tempStudents[dictKey].push(name);
           });
 
-          // Convert Sets to Arrays and Sort Alphabetically
           Object.keys(tempClasses).forEach(y => {
             tempClasses[y] = Array.from(tempClasses[y]).sort();
           });
@@ -316,8 +295,6 @@ export default function App() {
 
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
-        } else {
-          console.warn("Student index document not found in Kehadiran DB.");
         }
       } catch (error) {
         console.error("Error fetching from Kehadiran DB:", error);
@@ -331,14 +308,7 @@ export default function App() {
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
-    
-    // =========================================================================
-    // ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
-    // 当您在 VS Code 中运行时，请取消注释下面这行代码以使用 .env 文件中的安全密码：
-    // const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    // 并且删除这行测试用的硬编码密码：
     const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    // =========================================================================
 
     if (adminPwd === correctPassword) {
       setIsAdmin(true);
@@ -392,7 +362,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- HEADER (Visible everywhere except Home and Admin) --- */}
       {view !== 'home' && view !== 'admin' && (
         <div className="bg-white shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10 border-b border-gray-200">
           <button onClick={handleBack} className="text-blue-600 font-bold flex items-center bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">
@@ -404,7 +373,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 1. HOME VIEW (Linktree Style) --- */}
       {view === 'home' && (
         <div className="min-h-screen bg-gradient-to-br from-yellow-300 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden">
           <Bus size={120} className="absolute top-10 left-[-20px] text-yellow-600 opacity-20 rotate-[-15deg]" />
@@ -471,7 +439,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 2. PARENT DATA COLLECTION FORM --- */}
       {view === 'parentForm' && (
         <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in">
           <div className="text-center mb-6 mt-2">
@@ -540,7 +507,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 3. DRIVER REGISTRATION FORM --- */}
       {view === 'driverForm' && (
         <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in">
           <div className="text-center mb-6 mt-2">
@@ -552,7 +518,7 @@ export default function App() {
             <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
             
             <div className="bg-green-50 p-4 rounded-xl mb-6 text-sm text-green-800 border border-green-200">
-              Sila isi maklumat terkini anda untuk rujukan pihak sekolah dan kemudahan ibu bapa. / 请填写您的最新资料，以便校方记录及方便家长查阅。
+              Sila isi maklumat terkini anda untuk rujukan pihak sekolah and kemudahan ibu bapa. / 请填写您的最新资料，以便校方记录及方便家长查阅。
             </div>
 
             <div className="space-y-5">
@@ -604,7 +570,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
       {view === 'driverList' && (
         <div className="max-w-4xl mx-auto p-4 animate-in fade-in">
           <div className="text-center mb-6 mt-2">
@@ -667,7 +632,6 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 5. ADMIN VIEW (Protected) --- */}
       {view === 'admin' && (
         <div className="max-w-4xl mx-auto p-4 animate-in fade-in zoom-in-95">
           <div className="bg-gray-900 text-white p-5 rounded-2xl shadow-lg mb-6 flex justify-between items-center bg-pattern">

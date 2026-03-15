@@ -1,26 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2 } from 'lucide-react';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 
-// --- MOCK DATA (To be replaced with Firebase later) ---
+// =========================================================================
+// ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
+// 当您将此代码复制到 VS Code 时，请取消注释下面这行引入真实数据库的代码：
+// import { kehadiranDb, kehadiranAuth } from './firebase';
+// 并且您可以安全地删除或注释掉下方 try...catch 区块中为了预览而设置的临时代码。
+// =========================================================================
+
+let kehadiranDb = null;
+let kehadiranAuth = null;
+try {
+  // 这段代码仅用于确保在当前的网页预览环境中不会崩溃。
+  const kehadiranConfig = {
+    apiKey: "preview-dummy-key",
+    authDomain: "sistem-kehadiran-sm.firebaseapp.com",
+    projectId: "sistem-kehadiran-sm",
+    storageBucket: "sistem-kehadiran-sm.firebasestorage.app",
+    messagingSenderId: "342447956861",
+    appId: "1:342447956861:web:2636cce55011d336e8a214"
+  };
+  
+  const apps = getApps();
+  const existingApp = apps.find(app => app.name === "Kehadiran");
+  if (!existingApp) {
+    const kehadiranApp = initializeApp(kehadiranConfig, "Kehadiran");
+    kehadiranDb = getFirestore(kehadiranApp);
+    kehadiranAuth = getAuth(kehadiranApp);
+  } else {
+    kehadiranDb = getFirestore(existingApp);
+    kehadiranAuth = getAuth(existingApp);
+  }
+} catch (error) {
+  console.warn("Firebase initialization skipped for preview environment.");
+}
+
+// --- MOCK DATA ---
 const mockDrivers = [
   { nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
   { nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
   { nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
 ];
-
-const mockClasses = {
-  "1": ["Mawar", "Melati", "Orkid"],
-  "2": ["Mawar", "Melati", "Orkid"],
-  "3": ["Mawar", "Melati", "Orkid"],
-  "4": ["Mawar", "Melati", "Orkid"],
-  "5": ["Mawar", "Melati", "Orkid"],
-  "6": ["Mawar", "Melati", "Orkid"],
-};
-
-const mockStudents = {
-  "1-Mawar": ["Ali bin Abu", "Chong Wei Jie", "Muthusamy"],
-  "1-Melati": ["Siti Nurhaliza", "Tan Mei Mei", "Raju A/L Subramaniam"],
-};
 
 // --- COMPONENTS ---
 
@@ -59,16 +82,16 @@ const DisclaimerPopup = ({ onAccept }) => {
   );
 };
 
-const ChildForm = ({ index }) => {
+const ChildForm = ({ index, availableClasses, studentsDict, isLoadingStudents }) => {
   const [year, setYear] = useState('');
   const [kelas, setKelas] = useState('');
   const [session, setSession] = useState('');
-  const [arriveGate, setArriveGate] = useState('');
-  const [leaveGate, setLeaveGate] = useState('');
   
+  const [arriveGate, setArriveGate] = useState('');
   const [arriveDriver, setArriveDriver] = useState('');
   const [arriveDriverOther, setArriveDriverOther] = useState('');
   
+  const [leaveGate, setLeaveGate] = useState('');
   const [leaveDriver, setLeaveDriver] = useState('');
   const [leaveDriverOther, setLeaveDriverOther] = useState('');
   
@@ -78,33 +101,49 @@ const ChildForm = ({ index }) => {
   return (
     <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm mb-6 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-      <h3 className="font-bold mb-4 text-blue-800 text-lg flex items-center">
-        <span className="bg-blue-100 text-blue-800 w-8 h-8 rounded-full flex items-center justify-center mr-2">{index + 1}</span>
-        Anak / 孩子
+      <h3 className="font-bold mb-4 text-blue-800 text-lg flex items-center justify-between">
+        <div className="flex items-center">
+          <span className="bg-blue-100 text-blue-800 w-8 h-8 rounded-full flex items-center justify-center mr-2">{index + 1}</span>
+          Anak / 孩子
+        </div>
+        {isLoadingStudents && <Loader2 size={18} className="animate-spin text-blue-500" />}
       </h3>
       
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <label className="block text-xs font-bold mb-1 text-gray-600">Tahun / 年级</label>
-          <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition" value={year} onChange={(e) => { setYear(e.target.value); setKelas(''); }}>
+          <select 
+            className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:opacity-50" 
+            value={year} 
+            onChange={(e) => { setYear(e.target.value); setKelas(''); }}
+            disabled={isLoadingStudents}
+          >
             <option value="">Pilih / 选择</option>
-            {[1, 2, 3, 4, 5, 6].map(y => <option key={y} value={y}>Tahun {y}</option>)}
+            {Object.keys(availableClasses).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-bold mb-1 text-gray-600">Kelas / 班级</label>
-          <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:opacity-50" value={kelas} onChange={(e) => setKelas(e.target.value)} disabled={!year}>
+          <select 
+            className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:opacity-50" 
+            value={kelas} 
+            onChange={(e) => setKelas(e.target.value)} 
+            disabled={!year || isLoadingStudents}
+          >
             <option value="">Pilih / 选择</option>
-            {year && mockClasses[year]?.map(c => <option key={c} value={c}>{c}</option>)}
+            {year && availableClasses[year]?.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>
 
       <div className="mb-4">
         <label className="block text-xs font-bold mb-1 text-gray-600">Nama Pelajar / 学生姓名</label>
-        <select className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:opacity-50" disabled={!kelas}>
+        <select 
+          className="w-full p-2.5 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none transition disabled:opacity-50" 
+          disabled={!kelas || isLoadingStudents}
+        >
           <option value="">Pilih / 选择</option>
-          {kelas && mockStudents[`${year}-${kelas}`]?.map(s => <option key={s} value={s}>{s}</option>)}
+          {kelas && studentsDict[`${year}-${kelas}`]?.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
@@ -224,15 +263,104 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
 
+  // --- FIREBASE FETCHING STATES ---
+  const [availableClasses, setAvailableClasses] = useState({});
+  const [studentsDict, setStudentsDict] = useState({});
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+
   useEffect(() => {
+    // 1. Disclaimer logic
     if (!localStorage.getItem('hideTransportDisclaimer')) {
       setShowDisclaimer(true);
     }
+
+    // 2. Fetch students from Kehadiran DB
+    const fetchStudentsFromKehadiran = async () => {
+      setIsLoadingStudents(true);
+      
+      // 如果是在预览面板（使用 dummy key），直接加载备用测试数据
+      if (!kehadiranDb || !kehadiranAuth || kehadiranDb.app.options.apiKey === "preview-dummy-key") {
+        setAvailableClasses({"1": ["Mawar", "Melati"], "6": ["DE"]});
+        setStudentsDict({
+          "1-Mawar": ["Ali bin Abu", "Muthusamy"], 
+          "1-Melati": ["Siti Nurhaliza"],
+          "6-DE": ["WONG YU MIN"]
+        });
+        setIsLoadingStudents(false);
+        return;
+      }
+
+      try {
+        // 在查询 Firestore 之前先进行匿名登录以获取访问权限
+        await signInAnonymously(kehadiranAuth);
+        
+        const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const studentArray = docSnap.data().list || [];
+          const tempClasses = {};
+          const tempStudents = {};
+
+          studentArray.forEach(student => {
+            const fullClass = student.class || ""; 
+            const name = student.name || "Unknown";
+            
+            // Extract Year and Class (e.g., "6 DE" -> Year 6, Class DE)
+            const match = fullClass.match(/^(\d+)\s*(.*)/);
+            let year = "Lain-lain";
+            let className = fullClass;
+
+            if (match) {
+              year = match[1];
+              className = match[2] || fullClass;
+            }
+
+            // Group Classes by Year
+            if (!tempClasses[year]) tempClasses[year] = new Set();
+            tempClasses[year].add(className);
+
+            // Group Students by Year-Class key
+            const dictKey = `${year}-${className}`;
+            if (!tempStudents[dictKey]) tempStudents[dictKey] = [];
+            tempStudents[dictKey].push(name);
+          });
+
+          // Convert Sets to Arrays and Sort Alphabetically
+          Object.keys(tempClasses).forEach(y => {
+            tempClasses[y] = Array.from(tempClasses[y]).sort();
+          });
+          Object.keys(tempStudents).forEach(k => {
+            tempStudents[k].sort();
+          });
+
+          setAvailableClasses(tempClasses);
+          setStudentsDict(tempStudents);
+        } else {
+          console.warn("Student index document not found in Kehadiran DB.");
+        }
+      } catch (error) {
+        console.error("Error fetching from Kehadiran DB:", error);
+      } finally {
+        setIsLoadingStudents(false);
+      }
+    };
+
+    fetchStudentsFromKehadiran();
   }, []);
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
-    if (adminPwd === "BBC+9404") {
+    
+    // =========================================================================
+    // ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
+    // 当您在 VS Code 中运行时，请取消注释下面这行代码以使用 .env 文件中的安全密码：
+    // const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    // 并且删除这行测试用的硬编码密码：
+    const correctPassword = "BBC+9404";
+    // =========================================================================
+
+    if (adminPwd === correctPassword) {
       setIsAdmin(true);
       setView('admin');
       setAdminModalOpen(false);
@@ -299,13 +427,10 @@ export default function App() {
       {/* --- 1. HOME VIEW (Linktree Style) --- */}
       {view === 'home' && (
         <div className="min-h-screen bg-gradient-to-br from-yellow-300 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-          {/* Background graphics */}
           <Bus size={120} className="absolute top-10 left-[-20px] text-yellow-600 opacity-20 rotate-[-15deg]" />
           <Car size={100} className="absolute bottom-20 right-[-10px] text-yellow-600 opacity-20" />
           
-          <div 
-            className="mb-6 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white z-10"
-          >
+          <div className="mb-6 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white z-10">
             <span className="text-6xl" role="img" aria-label="School">🏫</span>
           </div>
 
@@ -354,7 +479,7 @@ export default function App() {
           
           <div className="mt-12 flex flex-col items-center z-10">
             <div className="text-sm font-semibold text-yellow-900 opacity-70">
-              © 2026 SJKC Sin Ming, Puchong
+              © {new Date().getFullYear()} SJKC Sin Ming, Puchong
             </div>
             <button 
               onClick={() => setAdminModalOpen(true)}
@@ -419,7 +544,13 @@ export default function App() {
 
           <div className="space-y-6">
             {Array.from({ length: numKids }).map((_, i) => (
-              <ChildForm key={i} index={i} />
+              <ChildForm 
+                key={i} 
+                index={i} 
+                availableClasses={availableClasses} 
+                studentsDict={studentsDict} 
+                isLoadingStudents={isLoadingStudents} 
+              />
             ))}
           </div>
 
@@ -429,7 +560,7 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 3. DRIVER REGISTRATION FORM (NEW) --- */}
+      {/* --- 3. DRIVER REGISTRATION FORM --- */}
       {view === 'driverForm' && (
         <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in">
           <div className="text-center mb-6 mt-2">
@@ -509,7 +640,6 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* --- Gate A3 Column --- */}
             <div>
               <div className="bg-green-100 text-green-800 font-bold text-center py-2.5 rounded-xl mb-4 shadow-sm border border-green-200">
                 Gate A3
@@ -518,11 +648,7 @@ export default function App() {
                 {mockDrivers.filter(d => d.gate === 'A3').map((driver, i) => (
                   <div key={`a3-${i}`} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
                     <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-green-100">
-                      {driver.photo ? (
-                        <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" />
-                      ) : (
-                        <Bus size={30} />
-                      )}
+                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-lg text-gray-900">{driver.nickname}</div>
@@ -533,13 +659,9 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-                {mockDrivers.filter(d => d.gate === 'A3').length === 0 && (
-                  <div className="text-center text-gray-500 text-sm py-4">Tiada pemandu di Gate A3</div>
-                )}
               </div>
             </div>
 
-            {/* --- Gate B Column --- */}
             <div>
               <div className="bg-blue-100 text-blue-800 font-bold text-center py-2.5 rounded-xl mb-4 shadow-sm border border-blue-200">
                 Gate B
@@ -548,11 +670,7 @@ export default function App() {
                 {mockDrivers.filter(d => d.gate === 'B').map((driver, i) => (
                   <div key={`b-${i}`} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-blue-100">
-                      {driver.photo ? (
-                        <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" />
-                      ) : (
-                        <Bus size={30} />
-                      )}
+                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
                     </div>
                     <div className="flex-1">
                       <div className="font-bold text-lg text-gray-900">{driver.nickname}</div>
@@ -563,9 +681,6 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-                {mockDrivers.filter(d => d.gate === 'B').length === 0 && (
-                  <div className="text-center text-gray-500 text-sm py-4">Tiada pemandu di Gate B</div>
-                )}
               </div>
             </div>
           </div>
@@ -589,7 +704,6 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Search Panel */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
               <h3 className="font-bold text-lg mb-4 flex items-center"><Search size={18} className="mr-2 text-blue-500"/> Carian Pelajar / 搜索学生</h3>
               <input type="text" placeholder="Masukkan nama atau IC..." className="w-full p-3 border border-gray-200 rounded-xl mb-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -603,7 +717,6 @@ export default function App() {
             </div>
 
             <div className="space-y-6">
-              {/* Quick Actions Panel */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <h3 className="font-bold text-lg mb-4 flex items-center"><PlusCircle size={18} className="mr-2 text-green-500"/> Tindakan Pantas / 快捷操作</h3>
                 <div className="space-y-3">
@@ -613,7 +726,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* System Settings Panel */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <h3 className="font-bold text-lg mb-4 flex items-center">Tetapan Sistem / 系统设置</h3>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 gap-4">

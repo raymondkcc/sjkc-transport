@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-const firebaseConfig = {
+// --- 1. TRANSPORT DATABASE (For saving forms) ---
+const transportConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -10,6 +11,20 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(transportConfig);
 export const db = getFirestore(app);
+
+
+// --- 2. KEHADIRAN DATABASE (For reading student names) ---
+const kehadiranConfig = {
+  apiKey: import.meta.env.VITE_KEHADIRAN_API_KEY,
+  authDomain: import.meta.env.VITE_KEHADIRAN_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_KEHADIRAN_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_KEHADIRAN_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_KEHADIRAN_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_KEHADIRAN_APP_ID
+};
+
+// We name this one "Kehadiran" so Firebase doesn't get confused
+const kehadiranApp = initializeApp(kehadiranConfig, "Kehadiran"); 
+export const kehadiranDb = getFirestore(kehadiranApp);

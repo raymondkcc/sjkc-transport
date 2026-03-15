@@ -114,6 +114,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <select className="w-full p-3 border border-green-200 rounded-xl bg-white hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 cursor-pointer text-green-900" value={data.arriveGate} onChange={(e) => handleChange('arriveGate', e.target.value)}>
             <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A / A1 (Sendiri/自己载送)</option>
+            <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
             <option value="A3">Gate A3</option>
             <option value="B">Gate B</option>
           </select>
@@ -144,6 +145,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <select className="w-full p-3 border border-orange-200 rounded-xl bg-white hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 cursor-pointer text-orange-900" value={data.leaveGate} onChange={(e) => handleChange('leaveGate', e.target.value)}>
              <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A/A1 (Sendiri/自己载送)</option>
+            <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
             <option value="A3">Gate A3</option>
             <option value="B">Gate B</option>
           </select>
@@ -662,7 +664,7 @@ export default function App() {
 
       {/* --- 2. PARENT DATA COLLECTION FORM --- */}
       {view === 'parentForm' && (
-        <div className="max-w-xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
+        <div className="max-w-xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Borang Ibu Bapa</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">家长/监护人交通资料收集</p>
@@ -727,7 +729,7 @@ export default function App() {
 
       {/* --- 3. DRIVER REGISTRATION FORM --- */}
       {view === 'driverForm' && (
-        <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in zoom-in-95 duration-500 ease-out">
+        <div className="max-w-xl mx-auto p-4 pb-24 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
@@ -793,7 +795,7 @@ export default function App() {
 
       {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
       {view === 'driverList' && (
-        <div className="max-w-4xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
+        <div className="max-w-4xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Senarai Pemandu</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">载送方公共列表</p>

@@ -3,14 +3,8 @@ import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, 
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
-// =========================================================================
-// ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
-// 当您将此代码复制到 VS Code 时，请取消注释下面这行引入真实数据库的代码：
-// import { db, kehadiranDb, kehadiranAuth } from './firebase';
-// =========================================================================
-let db = null;
-let kehadiranDb = null;
-let kehadiranAuth = null;
+// 引入真实数据库（已启用）
+import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- MOCK DATA ---
 const mockDrivers = [
@@ -364,12 +358,8 @@ export default function App() {
   const handleAdminLogin = (e) => {
     e.preventDefault();
     
-    // =========================================================================
-    // ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
-    // 当您将此代码复制到 VS Code 时，请取消注释下面这行代码以使用真实的 .env 密码：
-    // const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    // =========================================================================
-    const correctPassword = "BBC+9404";
+    // 使用 import.meta.env 获取真实的密码环境变量（已解开注释）
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     
     if (adminPwd === correctPassword) {
       setIsAdmin(true);

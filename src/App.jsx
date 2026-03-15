@@ -11,18 +11,7 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 // 并且您可以安全地删除或注释掉下方 try...catch 区块中为了预览而设置的临时代码。
 // =========================================================================
 
-let kehadiranDb = null;
-let kehadiranAuth = null;
-try {
-  // 这段代码仅用于确保在当前的网页预览环境中不会崩溃。
-  const kehadiranConfig = {
-    apiKey: "preview-dummy-key",
-    authDomain: "sistem-kehadiran-sm.firebaseapp.com",
-    projectId: "sistem-kehadiran-sm",
-    storageBucket: "sistem-kehadiran-sm.firebasestorage.app",
-    messagingSenderId: "342447956861",
-    appId: "1:342447956861:web:2636cce55011d336e8a214"
-  };
+import { kehadiranDb, kehadiranAuth } from './firebase';
   
   const apps = getApps();
   const existingApp = apps.find(app => app.name === "Kehadiran");
@@ -357,7 +346,7 @@ export default function App() {
     // 当您在 VS Code 中运行时，请取消注释下面这行代码以使用 .env 文件中的安全密码：
     // const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     // 并且删除这行测试用的硬编码密码：
-    const correctPassword = "BBC+9404";
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     // =========================================================================
 
     if (adminPwd === correctPassword) {

@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2 } from 'lucide-react';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
+// This is the ONLY Firebase line you need here now:
 import { kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- MOCK DATA ---
 const mockDrivers = [
   { nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
-// ... the rest of your mockDrivers code continues here ...
+  { nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
+  { nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
+];
+
+// --- COMPONENTS ---
   const apps = getApps();
   const existingApp = apps.find(app => app.name === "Kehadiran");
   if (!existingApp) {
@@ -20,9 +24,7 @@ const mockDrivers = [
     kehadiranDb = getFirestore(existingApp);
     kehadiranAuth = getAuth(existingApp);
   }
-} catch (error) {
-  console.warn("Firebase initialization skipped for preview environment.");
-}
+
 
 // --- MOCK DATA ---
 const mockDrivers = [

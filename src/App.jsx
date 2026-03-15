@@ -25,14 +25,6 @@ const mockDrivers = [
     kehadiranAuth = getAuth(existingApp);
   }
 
-
-// --- MOCK DATA ---
-const mockDrivers = [
-  { nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
-  { nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
-  { nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
-];
-
 // --- COMPONENTS ---
 
 const DisclaimerPopup = ({ onAccept }) => {

@@ -115,7 +115,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A / A1 (Sendiri/自己载送)</option>
             <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
-            <option value="A3">Gate A3</option>
+            <option value="A3">Gate A3 (Transporter / 司机)</option>
             <option value="B">Gate B</option>
           </select>
         </div>
@@ -146,7 +146,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
              <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A/A1 (Sendiri/自己载送)</option>
             <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
-            <option value="A3">Gate A3</option>
+            <option value="A3">Gate A3 (Transporter / 司机)</option>
             <option value="B">Gate B</option>
           </select>
         </div>

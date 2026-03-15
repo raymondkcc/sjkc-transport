@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2 } from 'lucide-react';
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 
-// 确保从 firebase.js 引入了主数据库 db，以及 Kehadiran 数据库
-import { db, kehadiranDb, kehadiranAuth } from './firebase';
+// =========================================================================
+// ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
+// 当您将此代码复制到 VS Code 时，请取消注释下面这行引入真实数据库的代码：
+// import { db, kehadiranDb, kehadiranAuth } from './firebase';
+// =========================================================================
+let db = null;
+let kehadiranDb = null;
+let kehadiranAuth = null;
 
 // --- MOCK DATA ---
 const mockDrivers = [
@@ -217,21 +223,32 @@ export default function App() {
   const [studentsDict, setStudentsDict] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
-  // 1. Fetch Students from Kehadiran DB
+  // 1. Fetch Students from Kehadiran DB & Auth Setup
   useEffect(() => {
     if (!localStorage.getItem('hideTransportDisclaimer')) {
       setShowDisclaimer(true);
     }
 
-    const fetchStudentsFromKehadiran = async () => {
+    const initDatabasesAndFetch = async () => {
       setIsLoadingStudents(true);
+
+      // --- CRITICAL FIX: Authenticate the Transport DB so we can save forms ---
+      try {
+        const defaultAuth = getAuth();
+        await signInAnonymously(defaultAuth);
+      } catch (authErr) {
+        console.error("Transport DB Auth Error:", authErr);
+      }
+
       if (!kehadiranDb || !kehadiranAuth) {
         setAvailableClasses({"1": ["Mawar", "Melati"], "6": ["DE"]});
         setStudentsDict({ "1-Mawar": ["Ali bin Abu", "Muthusamy"], "1-Melati": ["Siti Nurhaliza"], "6-DE": ["WONG YU MIN"] });
         setIsLoadingStudents(false);
         return;
       }
+
       try {
+        // Authenticate the Kehadiran DB to fetch students
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
@@ -269,7 +286,7 @@ export default function App() {
         setIsLoadingStudents(false);
       }
     };
-    fetchStudentsFromKehadiran();
+    initDatabasesAndFetch();
   }, []);
 
   // 2. Admin Fetch Submissions Logic
@@ -318,7 +335,7 @@ export default function App() {
   const handleParentSubmit = async () => {
     // Basic validation
     if (!parentInfo.name || !parentInfo.phone) {
-      setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga.");
+      setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga. / 请至少填写监护人姓名与电话号码。");
       return;
     }
     
@@ -337,7 +354,7 @@ export default function App() {
       handleBack();
     } catch (error) {
       console.error("Error saving document: ", error);
-      setAlertMessage("Ralat semasa menghantar. Sila cuba lagi.");
+      setAlertMessage("Ralat semasa menghantar. Sila cuba lagi. / 提交时发生错误，请重试。");
     } finally {
       setIsSubmitting(false);
     }
@@ -346,14 +363,21 @@ export default function App() {
   // Admin Handlers
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    
+    // =========================================================================
+    // ⚠️ VS CODE 部署提示 (IMPORTANT FOR VS CODE)
+    // 当您将此代码复制到 VS Code 时，请取消注释下面这行代码以使用真实的 .env 密码：
+    // const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    // =========================================================================
+    const correctPassword = "BBC+9404";
+    
     if (adminPwd === correctPassword) {
       setIsAdmin(true);
       setView('admin');
       setAdminModalOpen(false);
       setAdminPwd('');
     } else {
-      setAlertMessage("Katalaluan Salah / Incorrect Password!");
+      setAlertMessage("Katalaluan Salah / 密码错误 (Incorrect Password)!");
     }
   };
 
@@ -364,7 +388,7 @@ export default function App() {
       setDeleteConfirmId(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
-      setAlertMessage("Gagal memadam rekod. Sila periksa Firestore Rules.");
+      setAlertMessage("Gagal memadam rekod. / 无法删除记录，请检查数据库权限。");
       setDeleteConfirmId(null);
     }
   };
@@ -404,25 +428,25 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12">
       {showDisclaimer && <DisclaimerPopup onAccept={() => setShowDisclaimer(false)} />}
       
-      {/* Alert Modal */}
+      {/* Alert Modal (Dual Language) */}
       {alertMessage && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in text-center">
-            <div className="text-lg font-bold mb-6 text-gray-800">{alertMessage}</div>
-            <button onClick={() => setAlertMessage('')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold w-full transition">OK, Faham</button>
+            <div className="text-lg font-bold mb-6 text-gray-800 whitespace-pre-line">{alertMessage}</div>
+            <button onClick={() => setAlertMessage('')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold w-full transition">OK, Faham / 好的</button>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal (Dual Language) */}
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in">
-            <h3 className="font-bold text-xl mb-2 text-gray-900">Padam Rekod?</h3>
-            <p className="text-gray-600 mb-6 text-sm">Adakah anda pasti mahu memadam rekod ini? Tindakan ini tidak boleh dibatalkan.</p>
+            <h3 className="font-bold text-xl mb-2 text-gray-900">Padam Rekod? / 删除记录？</h3>
+            <p className="text-gray-600 mb-6 text-sm">Adakah anda pasti mahu memadam rekod ini? Tindakan ini tidak boleh dibatalkan. / 您确定要删除此记录吗？此操作无法撤销。</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal</button>
-              <button onClick={() => handleDeleteSubmission(deleteConfirmId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam (Delete)</button>
+              <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal / 取消</button>
+              <button onClick={() => handleDeleteSubmission(deleteConfirmId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam / 删除</button>
             </div>
           </div>
         </div>
@@ -436,8 +460,8 @@ export default function App() {
             <form onSubmit={handleAdminLogin}>
               <input type="password" placeholder="Kata Laluan / Password" className="w-full p-3 border border-gray-300 rounded-xl mb-4 focus:ring-2 focus:ring-red-500 outline-none text-center tracking-widest" value={adminPwd} onChange={e => setAdminPwd(e.target.value)} autoFocus />
               <div className="flex gap-3">
-                <button type="button" onClick={() => setAdminModalOpen(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition">Batal</button>
-                <button type="submit" className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Login</button>
+                <button type="button" onClick={() => setAdminModalOpen(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl transition">Batal / 取消</button>
+                <button type="submit" className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition">Login / 登录</button>
               </div>
             </form>
           </div>
@@ -578,8 +602,133 @@ export default function App() {
           </div>
 
           <button onClick={handleParentSubmit} disabled={isSubmitting} className="mt-8 w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-lg flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed">
-            {isSubmitting ? <><Loader2 size={20} className="mr-2 animate-spin" /> Menghantar...</> : <>Hantar / 提交 <ArrowLeft size={20} className="ml-2 rotate-180" /></>}
+            {isSubmitting ? <><Loader2 size={20} className="mr-2 animate-spin" /> Menghantar / 正在提交...</> : <>Hantar / 提交 <ArrowLeft size={20} className="ml-2 rotate-180" /></>}
           </button>
+        </div>
+      )}
+
+      {view === 'driverForm' && (
+        <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in">
+          <div className="text-center mb-6 mt-2">
+            <h2 className="text-2xl font-extrabold text-gray-900">Pendaftaran Pemandu</h2>
+            <p className="text-gray-600 font-medium">司机注册与资料更新表格</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+            
+            <div className="bg-green-50 p-4 rounded-xl mb-6 text-sm text-green-800 border border-green-200">
+              Sila isi maklumat terkini anda untuk rujukan pihak sekolah and kemudahan ibu bapa. / 请填写您的最新资料，以便校方记录及方便家长查阅。
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-600">Nama Penuh Pemandu / 司机全名 (IC)</label>
+                <input type="text" placeholder="Contoh: Lim Ah Beng" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-600">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
+                <input type="text" placeholder="Contoh: Uncle Ah Meng / Auntie Shirley" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" />
+                <p className="text-xs text-gray-500 mt-1">Nama ini akan dipaparkan dalam senarai awam.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold mb-1 text-gray-600">No. Telefon / 手机号码</label>
+                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none" />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold mb-1 text-gray-600">No. Plat Kereta / 车牌号码</label>
+                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none font-bold uppercase" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-600">Muat Naik Gambar / 司机照片 (Pilihan/Optional)</label>
+                <input type="file" accept="image/*" className="w-full p-2 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200 transition" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1 text-gray-600">Gate Menunggu / 等候校门 (Sila Pilih)</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['A3', 'B'].map(gate => (
+                    <label key={gate} className="border border-gray-200 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 focus-within:ring-2 ring-green-500 transition has-[:checked]:bg-green-100 has-[:checked]:border-green-500">
+                      <input type="radio" name="driverGate" value={gate} className="sr-only" />
+                      <span className="font-bold text-gray-800">Gate</span>
+                      <span className="text-xl font-extrabold text-green-700">{gate}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={() => { setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan / 司机资料注册成功!"); handleBack(); }} className="mt-8 w-full bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-700 active:scale-95 transition-all text-lg flex justify-center items-center">
+              Daftar / 提交注册 <PlusCircle size={20} className="ml-2" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === 'driverList' && (
+        <div className="max-w-4xl mx-auto p-4 animate-in fade-in">
+          <div className="text-center mb-6 mt-2">
+            <h2 className="text-2xl font-extrabold text-gray-900">Senarai Pemandu</h2>
+            <p className="text-gray-600 font-medium">载送方公共列表</p>
+          </div>
+          
+          <div className="relative mb-6 max-w-xl mx-auto">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
+            <input type="text" placeholder="Cari nama pemandu atau plat kereta..." className="w-full pl-10 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 outline-none shadow-sm" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="bg-green-100 text-green-800 font-bold text-center py-2.5 rounded-xl mb-4 shadow-sm border border-green-200">
+                Gate A3
+              </div>
+              <div className="space-y-4">
+                {mockDrivers.filter(d => d.gate === 'A3').map((driver, i) => (
+                  <div key={`a3-${i}`} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
+                    <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-green-100">
+                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-lg text-gray-900">{driver.nickname}</div>
+                      <div className="text-sm font-semibold text-gray-600 mb-1">{driver.hp}</div>
+                      <div className="flex items-center">
+                        <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-mono text-xs font-bold">{driver.plate}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="bg-blue-100 text-blue-800 font-bold text-center py-2.5 rounded-xl mb-4 shadow-sm border border-blue-200">
+                Gate B
+              </div>
+              <div className="space-y-4">
+                {mockDrivers.filter(d => d.gate === 'B').map((driver, i) => (
+                  <div key={`b-${i}`} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-blue-100">
+                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-lg text-gray-900">{driver.nickname}</div>
+                      <div className="text-sm font-semibold text-gray-600 mb-1">{driver.hp}</div>
+                      <div className="flex items-center">
+                        <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-mono text-xs font-bold">{driver.plate}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -595,7 +744,7 @@ export default function App() {
               </div>
             </div>
             <button onClick={() => { setIsAdmin(false); navigateTo('home'); }} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center transition">
-              <LogOut size={16} className="mr-2" /> Logout
+              <LogOut size={16} className="mr-2" /> Logout / 登出
             </button>
           </div>
 
@@ -603,15 +752,15 @@ export default function App() {
             {/* Search Controls */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-fit">
               <h3 className="font-bold text-lg mb-4 flex items-center"><Search size={18} className="mr-2 text-blue-500"/> Carian / 搜索与过滤</h3>
-              <input type="text" placeholder="Cari nama ibu bapa, IC, atau murid..." className="w-full p-3 border border-gray-200 rounded-xl mb-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <input type="text" placeholder="Cari nama ibu bapa, IC, atau murid... / 搜索家长姓名、IC 或学生..." className="w-full p-3 border border-gray-200 rounded-xl mb-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
               <div className="relative mb-4">
-                <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
-                  <option value="">Semua Pemandu (All Drivers)</option>
+                <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
+                  <option value="">Semua Pemandu (All Drivers) / 所有司机</option>
                   {mockDrivers.map((d, i) => <option key={i} value={d.nickname}>{d.nickname}</option>)}
                 </select>
               </div>
               <div className="text-sm font-semibold text-gray-500 text-center bg-gray-100 py-2 rounded-lg">
-                Jumpa: <span className="text-blue-600 font-bold">{filteredSubmissions.length}</span> rekod
+                Jumpa / 找到: <span className="text-blue-600 font-bold">{filteredSubmissions.length}</span> rekod / 条记录
               </div>
             </div>
 
@@ -620,11 +769,11 @@ export default function App() {
               {isFetchingAdmin ? (
                 <div className="flex flex-col items-center justify-center p-10 bg-white rounded-2xl border border-gray-200">
                   <Loader2 size={32} className="animate-spin text-blue-500 mb-3" />
-                  <p className="text-gray-500 font-bold">Memuat turun data...</p>
+                  <p className="text-gray-500 font-bold">Memuat turun data / 正在加载数据...</p>
                 </div>
               ) : filteredSubmissions.length === 0 ? (
                 <div className="bg-white p-8 rounded-2xl text-center border border-gray-200 shadow-sm text-gray-500">
-                  Tiada rekod dijumpai.
+                  Tiada rekod dijumpai / 未找到任何记录。
                 </div>
               ) : (
                 filteredSubmissions.map(sub => (

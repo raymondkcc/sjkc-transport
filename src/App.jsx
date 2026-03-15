@@ -6,11 +6,11 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 // 引入真实数据库（完全基于您的生产环境配置）
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
-// --- MOCK DATA ---
-const mockDrivers = [
-  { nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
-  { nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
-  { nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
+// --- MOCK DATA (Updated to include IDs for deletion) ---
+const initialMockDrivers = [
+  { id: 'mock-1', nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
+  { id: 'mock-2', nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
+  { id: 'mock-3', nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
 ];
 
 // --- COMPONENTS ---
@@ -50,7 +50,7 @@ const DisclaimerPopup = ({ onAccept }) => {
   );
 };
 
-const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLoadingStudents }) => {
+const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLoadingStudents, driversList }) => {
   const handleChange = (field, value) => {
     onChange(index, field, value);
   };
@@ -120,7 +120,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <label className="block text-xs font-bold mb-1 text-green-800">Pemandu / 载送司机</label>
             <select className="w-full p-2.5 border border-green-300 rounded-xl mb-2 focus:ring-2 focus:ring-green-500 outline-none bg-white shadow-sm" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
-              {mockDrivers.map((driver, i) => <option key={i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
+              {driversList.map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
@@ -166,7 +166,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <>
                 <select className="w-full p-2.5 border border-orange-300 rounded-xl mb-2 focus:ring-2 focus:ring-orange-500 outline-none bg-white shadow-sm" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
-                  {mockDrivers.map((driver, i) => <option key={i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
+                  {driversList.map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
@@ -193,6 +193,9 @@ export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   
+  // Drivers State (Manageable in Admin)
+  const [driversList, setDriversList] = useState(initialMockDrivers);
+
   // Admin State
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
@@ -202,7 +205,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  
+  // Delete Modals State
+  const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
+  const [deleteDriverId, setDeleteDriverId] = useState(null);
 
   // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -217,6 +223,11 @@ export default function App() {
   const [studentsDict, setStudentsDict] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
+  // Configure Chrome Tab Header
+  useEffect(() => {
+    document.title = "SJKC Sin Ming Transport System";
+  }, []);
+
   // 1. Fetch Students from Kehadiran DB & Auth Setup
   useEffect(() => {
     if (!localStorage.getItem('hideTransportDisclaimer')) {
@@ -226,7 +237,7 @@ export default function App() {
     const initDatabasesAndFetch = async () => {
       setIsLoadingStudents(true);
 
-      // --- CRITICAL FIX: Authenticate the Transport DB so we can save forms ---
+      // Authenticate the Transport DB so we can save forms
       try {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
@@ -375,11 +386,18 @@ export default function App() {
     try {
       await deleteDoc(doc(db, "transport_submissions", id));
       setSubmissions(prev => prev.filter(s => s.id !== id));
-      setDeleteConfirmId(null);
+      setDeleteSubmissionId(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
       setAlertMessage("Gagal memadam rekod. / 无法删除记录，请检查数据库权限。");
-      setDeleteConfirmId(null);
+      setDeleteSubmissionId(null);
+    }
+  };
+
+  const handleDeleteDriver = () => {
+    if (deleteDriverId) {
+      setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
+      setDeleteDriverId(null);
     }
   };
 
@@ -428,15 +446,29 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal (Dual Language) */}
-      {deleteConfirmId && (
+      {/* Delete Submission Confirmation Modal (Dual Language) */}
+      {deleteSubmissionId && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in">
             <h3 className="font-bold text-xl mb-2 text-gray-900">Padam Rekod? / 删除记录？</h3>
             <p className="text-gray-600 mb-6 text-sm">Adakah anda pasti mahu memadam rekod ini? Tindakan ini tidak boleh dibatalkan. / 您确定要删除此记录吗？此操作无法撤销。</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirmId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal / 取消</button>
-              <button onClick={() => handleDeleteSubmission(deleteConfirmId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam / 删除</button>
+              <button onClick={() => setDeleteSubmissionId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal / 取消</button>
+              <button onClick={() => handleDeleteSubmission(deleteSubmissionId)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam / 删除</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Driver Confirmation Modal (Dual Language) */}
+      {deleteDriverId && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in">
+            <h3 className="font-bold text-xl mb-2 text-gray-900">Padam Pemandu? / 删除司机？</h3>
+            <p className="text-gray-600 mb-6 text-sm">Adakah anda pasti mahu memadam pemandu ini daripada senarai? / 您确定要在列表中删除这位司机吗？</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteDriverId(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl font-bold transition">Batal / 取消</button>
+              <button onClick={handleDeleteDriver} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition shadow-lg">Padam / 删除</button>
             </div>
           </div>
         </div>
@@ -475,13 +507,13 @@ export default function App() {
           <Bus size={120} className="absolute top-10 left-[-20px] text-yellow-600 opacity-20 rotate-[-15deg]" />
           <Car size={100} className="absolute bottom-20 right-[-10px] text-yellow-600 opacity-20" />
           
-          <div className="mb-6 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white z-10">
-            <span className="text-6xl" role="img" aria-label="School">🏫</span>
+          <div className="mb-6 w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white z-10 overflow-hidden">
+            <img src="https://i.postimg.cc/SjbRb8KH/hq720-removebg-preview.png" alt="SJKC Sin Ming Logo" className="w-full h-full object-cover p-2" />
           </div>
 
-          <div className="text-center z-10 mb-10">
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight drop-shadow-sm">Sistem Pengangkutan</h1>
-            <h2 className="text-xl font-bold text-gray-800 mt-1 opacity-90">交通管理系统</h2>
+          <div className="text-center z-10 mb-10 px-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight drop-shadow-sm">Sistem Pengangkutan SJKC Sin Ming</h1>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mt-2 opacity-90">新明华小交通管理系统</h2>
           </div>
 
           <div className="w-full max-w-md space-y-4 z-10">
@@ -587,6 +619,7 @@ export default function App() {
               <ChildForm 
                 key={i} index={i} data={childData} onChange={handleChildChange}
                 availableClasses={availableClasses} studentsDict={studentsDict} isLoadingStudents={isLoadingStudents} 
+                driversList={driversList}
               />
             ))}
           </div>
@@ -597,6 +630,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- 3. DRIVER REGISTRATION FORM --- */}
       {view === 'driverForm' && (
         <div className="max-w-xl mx-auto p-4 pb-24 animate-in fade-in">
           <div className="text-center mb-6 mt-2">
@@ -681,8 +715,8 @@ export default function App() {
                 Gate A3
               </div>
               <div className="space-y-4">
-                {mockDrivers.filter(d => d.gate === 'A3').map((driver, i) => (
-                  <div key={`a3-${i}`} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
+                {driversList.filter(d => d.gate === 'A3').map((driver) => (
+                  <div key={driver.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
                     <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-green-100">
                       {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
                     </div>
@@ -695,6 +729,7 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+                {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-500 text-center py-4">Tiada pemandu.</div>}
               </div>
             </div>
 
@@ -703,8 +738,8 @@ export default function App() {
                 Gate B
               </div>
               <div className="space-y-4">
-                {mockDrivers.filter(d => d.gate === 'B').map((driver, i) => (
-                  <div key={`b-${i}`} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
+                {driversList.filter(d => d.gate === 'B').map((driver) => (
+                  <div key={driver.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-md transition">
                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-4 flex-shrink-0 overflow-hidden border border-blue-100">
                       {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={30} />}
                     </div>
@@ -717,6 +752,7 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+                {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-500 text-center py-4">Tiada pemandu.</div>}
               </div>
             </div>
           </div>
@@ -749,7 +785,7 @@ export default function App() {
                 <div className="relative mb-4">
                   <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                     <option value="">Semua Pemandu (All Drivers) / 所有司机</option>
-                    {mockDrivers.map((d, i) => <option key={i} value={d.nickname}>{d.nickname}</option>)}
+                    {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname}</option>)}
                   </select>
                 </div>
                 <div className="text-sm font-semibold text-gray-500 text-center bg-gray-100 py-2 rounded-lg">
@@ -757,7 +793,26 @@ export default function App() {
                 </div>
               </div>
 
-              {/* System Settings (恢复显示) */}
+              {/* Manage Drivers */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h3 className="font-bold text-lg mb-4 flex items-center"><Bus size={18} className="mr-2 text-purple-500"/> Senarai Pemandu / 司机列表</h3>
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                  {driversList.map(driver => (
+                    <div key={driver.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="overflow-hidden pr-2">
+                        <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">Gate: {driver.gate} | Plat: {driver.plate}</div>
+                      </div>
+                      <button onClick={() => setDeleteDriverId(driver.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition flex-shrink-0" title="Padam Pemandu">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                  {driversList.length === 0 && <div className="text-sm text-gray-500 text-center py-4">Tiada pemandu. / 暂无司机。</div>}
+                </div>
+              </div>
+
+              {/* System Settings */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
                 <h3 className="font-bold text-lg mb-4 flex items-center">Tetapan Sistem / 系统设置</h3>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 gap-4">
@@ -797,7 +852,7 @@ export default function App() {
                         <h4 className="font-bold text-lg text-gray-900">{sub.parent?.name || "Tiada Nama"} <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full ml-1">{sub.parent?.relation}</span></h4>
                         <div className="text-sm font-semibold text-gray-600 mt-0.5">{sub.parent?.phone} | IC: {sub.parent?.ic}</div>
                       </div>
-                      <button onClick={() => setDeleteConfirmId(sub.id)} className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition active:scale-95" title="Padam Rekod">
+                      <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition active:scale-95" title="Padam Rekod">
                         <Trash2 size={18} />
                       </button>
                     </div>

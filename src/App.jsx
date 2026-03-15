@@ -3,7 +3,7 @@ import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, 
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
-// 引入真实数据库（已启用）
+// 引入真实数据库（完全基于您的生产环境配置）
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- MOCK DATA ---
@@ -358,7 +358,7 @@ export default function App() {
   const handleAdminLogin = (e) => {
     e.preventDefault();
     
-    // 使用 import.meta.env 获取真实的密码环境变量（已解开注释）
+    // 使用 import.meta.env 获取真实的密码环境变量
     const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     
     if (adminPwd === correctPassword) {
@@ -660,6 +660,7 @@ export default function App() {
         </div>
       )}
 
+      {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
       {view === 'driverList' && (
         <div className="max-w-4xl mx-auto p-4 animate-in fade-in">
           <div className="text-center mb-6 mt-2">
@@ -739,22 +740,42 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Search Controls */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-fit">
-              <h3 className="font-bold text-lg mb-4 flex items-center"><Search size={18} className="mr-2 text-blue-500"/> Carian / 搜索与过滤</h3>
-              <input type="text" placeholder="Cari nama ibu bapa, IC, atau murid... / 搜索家长姓名、IC 或学生..." className="w-full p-3 border border-gray-200 rounded-xl mb-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-              <div className="relative mb-4">
-                <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
-                  <option value="">Semua Pemandu (All Drivers) / 所有司机</option>
-                  {mockDrivers.map((d, i) => <option key={i} value={d.nickname}>{d.nickname}</option>)}
-                </select>
+            {/* 左侧区域：搜索控制 & 系统设置 */}
+            <div className="space-y-6 h-fit">
+              {/* Search Controls */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h3 className="font-bold text-lg mb-4 flex items-center"><Search size={18} className="mr-2 text-blue-500"/> Carian / 搜索与过滤</h3>
+                <input type="text" placeholder="Cari nama ibu bapa, IC, atau murid... / 搜索家长姓名、IC 或学生..." className="w-full p-3 border border-gray-200 rounded-xl mb-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <div className="relative mb-4">
+                  <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
+                    <option value="">Semua Pemandu (All Drivers) / 所有司机</option>
+                    {mockDrivers.map((d, i) => <option key={i} value={d.nickname}>{d.nickname}</option>)}
+                  </select>
+                </div>
+                <div className="text-sm font-semibold text-gray-500 text-center bg-gray-100 py-2 rounded-lg">
+                  Jumpa / 找到: <span className="text-blue-600 font-bold">{filteredSubmissions.length}</span> rekod / 条记录
+                </div>
               </div>
-              <div className="text-sm font-semibold text-gray-500 text-center bg-gray-100 py-2 rounded-lg">
-                Jumpa / 找到: <span className="text-blue-600 font-bold">{filteredSubmissions.length}</span> rekod / 条记录
+
+              {/* System Settings (恢复显示) */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <h3 className="font-bold text-lg mb-4 flex items-center">Tetapan Sistem / 系统设置</h3>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-gray-200 rounded-xl bg-gray-50 gap-4">
+                  <div>
+                    <div className="font-bold text-gray-800">Status Pendaftaran Pemandu</div>
+                    <div className="text-xs text-gray-500 mt-1">Buka/tutup borang pendaftaran awam.</div>
+                  </div>
+                  <button 
+                    onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
+                    className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-bold text-sm transition ${isDriverFormOpen ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                  >
+                    {isDriverFormOpen ? 'Tutup Borang (Close)' : 'Buka Borang (Open)'}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Results List */}
+            {/* 右侧区域：Results List */}
             <div className="space-y-4">
               {isFetchingAdmin ? (
                 <div className="flex flex-col items-center justify-center p-10 bg-white rounded-2xl border border-gray-200">

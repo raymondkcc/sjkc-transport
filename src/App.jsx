@@ -393,6 +393,11 @@ export default function App() {
 
   // Handle Importing the Excel Data
   const handleImportExcelDrivers = async () => {
+    if (driversList.length > 0) {
+      setAlertMessage("Operasi gagal. Data pemandu telah pun diimport / wujud. \n 操作失败，数据已被导入或已存在。");
+      return;
+    }
+
     if(!window.confirm("Adakah anda pasti mahu mengimport 40 orang pemandu? Pastikan pangkalan data 'drivers' kosong untuk mengelakkan pertindihan.\n\n您确定要导入40名司机吗？请确保数据库是空的，以免重复。")) {
       return;
     }
@@ -919,7 +924,7 @@ export default function App() {
                     </div>
                     <div className="flex-1">
                       <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.hp}</div>
+                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.phone || driver.hp}</div>
                       <div className="flex items-center">
                         <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
                       </div>
@@ -942,7 +947,7 @@ export default function App() {
                     </div>
                     <div className="flex-1">
                       <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.hp}</div>
+                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.phone || driver.hp}</div>
                       <div className="flex items-center">
                         <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
                       </div>
@@ -1004,7 +1009,7 @@ export default function App() {
                     <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
                       <div className="overflow-hidden pr-2">
                         <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
-                        <div className="text-xs font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{driver.plate}</span></div>
+                        <div className="text-xs font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{driver.plate}</span> | Tel: <span className="text-gray-700">{driver.phone || driver.hp}</span></div>
                       </div>
                       <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 flex-shrink-0 opacity-50 group-hover:opacity-100" title="Padam Pemandu">
                         <Trash2 size={16} />

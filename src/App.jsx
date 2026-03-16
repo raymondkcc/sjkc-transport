@@ -681,6 +681,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Navigation Header */}
       {view !== 'home' && view !== 'admin' && (
         <div className="bg-white/80 backdrop-blur-lg shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-20 border-b border-gray-200 transition-all duration-300">
           <button onClick={handleBack} className="text-blue-600 font-bold flex items-center bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors duration-300 group">
@@ -988,7 +989,7 @@ export default function App() {
                 <div className="relative mb-5">
                   <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                     <option value="">Semua Pemandu / 所有司机</option>
-                    {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname}</option>)}
+                    {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({d.plate})</option>)}
                   </select>
                 </div>
                 <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">

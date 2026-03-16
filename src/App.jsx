@@ -1,16 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2 } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud } from 'lucide-react';
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
 // 引入真实数据库（完全基于您的生产环境配置）
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
-// --- MOCK DATA (Updated to include IDs for deletion) ---
-const initialMockDrivers = [
-  { id: 'mock-1', nickname: "Uncle Ah Meng", plate: "WAA1234", gate: "A3", hp: "012-3456789", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Meng" },
-  { id: 'mock-2', nickname: "Auntie Siti", plate: "BCC999", gate: "B", hp: "017-9876543", photo: "https://api.dicebear.com/7.x/avataaars/svg?seed=Siti" },
-  { id: 'mock-3', nickname: "Bas Sekolah Cikgu Wong", plate: "VBB555", gate: "A3", hp: "019-1112222", photo: null }
+// --- TRANSCRIBED EXCEL DRIVERS DATA ---
+const excelDrivers = [
+  // Gate A3 (12 Drivers)
+  { nickname: "Uncle Ong", plate: "WHP8890", gate: "A3", phone: "0126569825", fullName: "ONG SEE KIM" },
+  { nickname: "Aunty Kuan", plate: "WSW6076", gate: "A3", phone: "0123913357", fullName: "YAP SIEW KEAN" },
+  { nickname: "Emily", plate: "VHV9616", gate: "A3", phone: "0168101372", fullName: "YEONG LAI KIN" },
+  { nickname: "Emily", plate: "WA2834Y", gate: "A3", phone: "0168101372", fullName: "YEONG LAI KIN" },
+  { nickname: "Emily", plate: "WWF9616", gate: "A3", phone: "0168101372", fullName: "YEONG LAI KIN" },
+  { nickname: "Uncle Sam", plate: "VEF8208", gate: "A3", phone: "0162570708", fullName: "LIM TEIN SENG" },
+  { nickname: "Aunty Sanny", plate: "BLM8286", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "WTK4284", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "WUF9866", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "WXR1353", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "BJU2930", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Uncle Chua", plate: "WPE9682", gate: "A3", phone: "0192299910", fullName: "CHUA YOON KIONG" },
+  // Gate B (28 Drivers)
+  { nickname: "Jasmin Ngian", plate: "WGU8795", gate: "B", phone: "016-2736002", fullName: "Ngian Geok Lan" },
+  { nickname: "Auntie 小云", plate: "BNW2263", gate: "B", phone: "016-2256631", fullName: "Lee Siew Wan" },
+  { nickname: "Auntie Amy", plate: "W8087Q", gate: "B", phone: "012-2342312", fullName: "Koo Hian Wah" },
+  { nickname: "Auntie May", plate: "WWT3657", gate: "B", phone: "012-2538799", fullName: "Chen Mei Fong" },
+  { nickname: "Auntie Ying", plate: "WPH2338", gate: "B", phone: "016-9932893", fullName: "Koh Yoke Ying" },
+  { nickname: "Auntie Lai", plate: "VKB9915", gate: "B", phone: "016-2213598", fullName: "Lai Yien Hua" },
+  { nickname: "Auntie Mi", plate: "VJB7782", gate: "B", phone: "011-59351933", fullName: "Yap Yuet Mei" },
+  { nickname: "Auntie Sharon", plate: "VAL9649", gate: "B", phone: "013-3335481", fullName: "Liau Sau Lun" },
+  { nickname: "Uncle Phan", plate: "VJ9492", gate: "B", phone: "019-5899492", fullName: "Phan Chai Choor" },
+  { nickname: "Auntie 秀蓉", plate: "VHG5609", gate: "B", phone: "012-6906208", fullName: "Leong Sow Yong" },
+  { nickname: "Auntie Elly", plate: "WVL6043", gate: "B", phone: "012-9189172", fullName: "Lee Kam Meei" },
+  { nickname: "Auntie Cindy", plate: "VKK9828", gate: "B", phone: "012-9398919", fullName: "Ong Saw Keng" },
+  { nickname: "Auntie Chew", plate: "WNB3013", gate: "B", phone: "016-2678899", fullName: "Chew Ah Choo" },
+  { nickname: "Auntie May (Sea)", plate: "BRM8688", gate: "B", phone: "012-6528831", fullName: "Tam Sea May" },
+  { nickname: "Auntie Moon", plate: "WC1591A", gate: "B", phone: "018-2888216", fullName: "Ong Moon San" },
+  { nickname: "Auntie 玉珍", plate: "BKD8484", gate: "B", phone: "012-3351859", fullName: "Ting Yoke Ting" },
+  { nickname: "英姐", plate: "VDM9869", gate: "B", phone: "016-3300580", fullName: "LEW AH YING" },
+  { nickname: "Auntie Mei Young", plate: "VEN1408", gate: "B", phone: "016-3358365", fullName: "LOW MEI YOUNG" },
+  { nickname: "Auntie Ling", plate: "WTS9583", gate: "B", phone: "012-6529834", fullName: "Wong Mee Ling" },
+  { nickname: "Auntie Agnes", plate: "VHR6896", gate: "B", phone: "012-3592756", fullName: "Ong Ai Siok" },
+  { nickname: "Uncle Lai", plate: "WUP6896", gate: "B", phone: "012-6650708", fullName: "Lai Yong Fong" },
+  { nickname: "Auntie Teoh", plate: "VMU6684", gate: "B", phone: "017-3555931", fullName: "Teoh Huey Lian" },
+  { nickname: "Auntie Yap", plate: "WB5095L", gate: "B", phone: "016-9763432", fullName: "Yap Mooi Yin" },
+  { nickname: "Uncle Lee", plate: "RY3383/WC2354D", gate: "B", phone: "012-6686260", fullName: "Lee Sing Long" },
+  { nickname: "Auntie Lee", plate: "WKW906", gate: "B", phone: "012-6686261", fullName: "Yee Siew Chin" },
+  { nickname: "Mdm. Ding Su Ling", plate: "WNU6281", gate: "B", phone: "016-3181162", fullName: "Ding Su Ling" },
+  { nickname: "Mdm. Ding Su See", plate: "BLH2489", gate: "B", phone: "016-7787677", fullName: "Ding Su See" },
+  { nickname: "Uncle Paul", plate: "WA9759G", gate: "B", phone: "016-6396323", fullName: "Khoo Kok Eng" },
 ];
 
 // --- COMPONENTS ---
@@ -124,7 +163,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
             <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
-              {driversList.map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
+              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
@@ -174,7 +213,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <>
                 <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
-                  {driversList.map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
+                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
@@ -202,7 +241,7 @@ export default function App() {
   const [alertMessage, setAlertMessage] = useState('');
   
   // Drivers State (Manageable in Admin)
-  const [driversList, setDriversList] = useState(initialMockDrivers);
+  const [driversList, setDriversList] = useState([]);
 
   // Admin State
   const [adminModalOpen, setAdminModalOpen] = useState(false);
@@ -213,6 +252,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
+  const [isImporting, setIsImporting] = useState(false); // NEW state for importing excel
   
   // Delete Modals State
   const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
@@ -240,7 +280,23 @@ export default function App() {
     document.title = "SJKC Sin Ming Transport System";
   }, []);
 
-  // 1. Fetch Students from Kehadiran DB & Auth Setup
+  // Function to fetch drivers from Firestore database
+  const fetchDriversList = async () => {
+    try {
+      const qSnap = await getDocs(collection(db, "drivers"));
+      const fetchedDrivers = [];
+      qSnap.forEach(doc => {
+        fetchedDrivers.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort alphabetically by nickname
+      fetchedDrivers.sort((a, b) => a.nickname.localeCompare(b.nickname));
+      setDriversList(fetchedDrivers);
+    } catch (err) {
+      console.error("Error fetching drivers from DB:", err);
+    }
+  };
+
+  // 1. Initialization (Auth + Fetching data)
   useEffect(() => {
     if (!localStorage.getItem('hideTransportDisclaimer')) {
       setShowDisclaimer(true);
@@ -249,10 +305,12 @@ export default function App() {
     const initDatabasesAndFetch = async () => {
       setIsLoadingStudents(true);
 
-      // Authenticate the Transport DB so we can save forms
+      // Authenticate the Transport DB so we can save forms and fetch drivers
       try {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
+        // Fetch drivers once authenticated
+        await fetchDriversList();
       } catch (authErr) {
         console.error("Transport DB Auth Error:", authErr);
       }
@@ -318,6 +376,8 @@ export default function App() {
       // Sort by newest first
       subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setSubmissions(subs);
+      // Ensure we also refresh drivers in Admin view
+      await fetchDriversList();
     } catch (error) {
       console.error("Error fetching submissions:", error);
     } finally {
@@ -330,6 +390,36 @@ export default function App() {
       fetchSubmissions();
     }
   }, [view, isAdmin]);
+
+  // Handle Importing the Excel Data
+  const handleImportExcelDrivers = async () => {
+    if(!window.confirm("Adakah anda pasti mahu mengimport 40 orang pemandu? Pastikan pangkalan data 'drivers' kosong untuk mengelakkan pertindihan.\n\n您确定要导入40名司机吗？请确保数据库是空的，以免重复。")) {
+      return;
+    }
+    
+    setIsImporting(true);
+    try {
+      // Free tier friendly loop import
+      for (const driver of excelDrivers) {
+        await addDoc(collection(db, "drivers"), {
+          fullName: driver.fullName,
+          nickname: driver.nickname,
+          phone: driver.phone,
+          plate: driver.plate,
+          gate: driver.gate,
+          photo: null,
+          createdAt: serverTimestamp()
+        });
+      }
+      setAlertMessage("Semua 40 Pemandu telah berjaya diimport! \n 40位司机已成功导入！");
+      await fetchDriversList();
+    } catch (err) {
+      console.error("Error importing drivers:", err);
+      setAlertMessage("Ralat semasa import. Sila semak Firestore Rules (memerlukan kebenaran 'create').\n 导入失败，请检查规则是否允许 'create'。");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   // Form Handlers
   const handleNumKidsChange = (n) => {
@@ -421,22 +511,24 @@ export default function App() {
 
   // Driver Submit Handler
   const handleDriverSubmit = async () => {
-    if (!driverInfo.fullName || !driverInfo.plate) {
-       setAlertMessage("Sila lengkapkan borang. \n 请完善表格。");
+    if (!driverInfo.fullName || !driverInfo.plate || !driverInfo.nickname || !driverInfo.gate) {
+       setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，门均为必填）。");
        return;
     }
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "drivers_registrations"), {
+      await addDoc(collection(db, "drivers"), {
         ...driverInfo,
         createdAt: serverTimestamp()
       });
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
       setDriverInfo({ fullName: '', nickname: '', phone: '', plate: '', gate: '', photo: null });
+      // update driver list state immediately
+      fetchDriversList();
       handleBack();
     } catch (error) {
       console.error("Error saving driver: ", error);
-      setAlertMessage("Ralat semasa menghantar. \n 提交时发生错误，请重试。");
+      setAlertMessage("Ralat semasa menghantar. Sila semak Rules Firebase. \n 提交时发生错误，请重试。");
     } finally {
       setIsSubmitting(false);
     }
@@ -471,9 +563,15 @@ export default function App() {
     }
   };
 
-  const handleDeleteDriver = () => {
-    if (deleteDriverId) {
+  const handleDeleteDriver = async () => {
+    if (!deleteDriverId) return;
+    try {
+      await deleteDoc(doc(db, "drivers", deleteDriverId));
       setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
+      setDeleteDriverId(null);
+    } catch (error) {
+      console.error("Error deleting driver: ", error);
+      setAlertMessage("Gagal memadam pemandu. Sila semak Firestore Rules. \n 无法删除司机，请检查数据库权限。");
       setDeleteDriverId(null);
     }
   };
@@ -895,7 +993,12 @@ export default function App() {
 
               {/* Manage Drivers */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Bus size={20} className="mr-2.5 text-purple-500"/> Senarai Pemandu</h3>
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="font-extrabold text-lg flex items-center text-gray-900"><Bus size={20} className="mr-2.5 text-purple-500"/> Senarai Pemandu</h3>
+                  <button onClick={handleImportExcelDrivers} disabled={isImporting} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center disabled:opacity-50">
+                    {isImporting ? <Loader2 size={14} className="animate-spin" /> : <><DownloadCloud size={14} className="mr-1"/> Import 40</>}
+                  </button>
+                </div>
                 <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                   {driversList.map(driver => (
                     <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">

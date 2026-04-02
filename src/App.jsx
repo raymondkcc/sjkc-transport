@@ -267,8 +267,7 @@ export default function App() {
   const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
 
   // Driver Registration Form State
-  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phone: '', plate: '', gate: '', photo: null });
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phone: '', plate: '', gate: '' });
 
   // Firebase Fetching States
   const [availableClasses, setAvailableClasses] = useState({});
@@ -412,7 +411,6 @@ export default function App() {
           phone: driver.phone,
           plate: driver.plate,
           gate: driver.gate,
-          photo: null,
           createdAt: serverTimestamp()
         });
       }
@@ -472,48 +470,6 @@ export default function App() {
     }
   };
 
-  // Driver Image Compression Handler
-  const handleImageCompress = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setIsCompressing(true);
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 400; // 限制最大宽度 400px 以节省空间
-        const MAX_HEIGHT = 400;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // 压缩为 JPEG，质量设为 0.6，极大地缩小 Base64 字符串体积
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        setDriverInfo({...driverInfo, photo: compressedDataUrl});
-        setIsCompressing(false);
-      };
-    };
-  };
-
   // Driver Submit Handler
   const handleDriverSubmit = async () => {
     if (!driverInfo.fullName || !driverInfo.plate || !driverInfo.nickname || !driverInfo.gate) {
@@ -527,7 +483,7 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
-      setDriverInfo({ fullName: '', nickname: '', phone: '', plate: '', gate: '', photo: null });
+      setDriverInfo({ fullName: '', nickname: '', phone: '', plate: '', gate: '' });
       // update driver list state immediately
       fetchDriversList();
       handleBack();
@@ -869,13 +825,6 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="p-1">
-                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Muat Naik Gambar / 司机照片 (Pilihan/Optional)</label>
-                <input type="file" accept="image/*" onChange={handleImageCompress} className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-green-100 file:text-green-800 hover:file:bg-green-200 hover:border-green-300 transition-all duration-300 cursor-pointer" />
-                {isCompressing && <span className="block mt-3 text-xs text-blue-500 animate-pulse font-bold flex items-center"><Loader2 size={12} className="mr-1 animate-spin"/> Sedang memampatkan gambar... / 正在压缩图片...</span>}
-                {driverInfo.photo && !isCompressing && <span className="block mt-3 text-xs text-green-600 font-bold flex items-center animate-in fade-in duration-300"><PlusCircle size={12} className="mr-1"/> Gambar sedia dimuat naik / 图片已准备就绪</span>}
-              </div>
-
               <div>
                 <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
                 <div className="grid grid-cols-2 gap-4">
@@ -890,7 +839,7 @@ export default function App() {
               </div>
             </div>
 
-            <button onClick={handleDriverSubmit} disabled={isSubmitting || isCompressing} className="mt-10 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
+            <button onClick={handleDriverSubmit} disabled={isSubmitting} className="mt-10 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
               {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Sedang Menyimpan / 正在保存...</> : <>Daftar / 提交注册 <PlusCircle size={22} className="ml-2.5 group-hover:rotate-90 transition-transform duration-500" /></>}
             </button>
           </div>
@@ -921,7 +870,7 @@ export default function App() {
                 {driversList.filter(d => d.gate === 'A3').map((driver, i) => (
                   <div key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
                     <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={28} strokeWidth={1.5} />}
+                      <Bus size={28} strokeWidth={1.5} />
                     </div>
                     <div className="flex-1">
                       <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300">{driver.nickname}</div>
@@ -944,7 +893,7 @@ export default function App() {
                 {driversList.filter(d => d.gate === 'B').map((driver, i) => (
                   <div key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                      {driver.photo ? <img src={driver.photo} alt={driver.nickname} className="w-full h-full object-cover" /> : <Bus size={28} strokeWidth={1.5} />}
+                      <Bus size={28} strokeWidth={1.5} />
                     </div>
                     <div className="flex-1">
                       <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{driver.nickname}</div>

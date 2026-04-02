@@ -6,50 +6,68 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 // 引入真实数据库（完全基于您的生产环境配置）
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
-// --- TRANSCRIBED EXCEL DRIVERS DATA ---
+// --- FORMATTER FUNCTIONS ---
+const formatPhone = (val) => {
+  let cleaned = val.replace(/\D/g, ''); // 移除所有非数字字符
+  if (cleaned.length > 3) {
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 11)}`; // 格式化为: 01x xxxxxxx
+  }
+  return cleaned;
+};
+
+const formatPlate = (val) => {
+  let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, ''); // 转大写并移除所有非字母和数字
+  let match = cleaned.match(/^([A-Z]+)(\d+.*)$/); // 提取字母部分和后续数字/字母部分
+  if (match) {
+    return `${match[1]} ${match[2]}`; // 格式化为: ABC 1234
+  }
+  return cleaned;
+};
+
+// --- TRANSCRIBED EXCEL DRIVERS DATA (Pre-formatted) ---
 const excelDrivers = [
   // Gate A3 (12 Drivers)
-  { nickname: "Uncle Ong", plate: "WHP8890", gate: "A3", phone: "0126569825", fullName: "ONG SEE KIM" },
-  { nickname: "Aunty Kuan", plate: "WSW6076", gate: "A3", phone: "0123913357", fullName: "YAP SIEW KEAN" },
-  { nickname: "Emily", plate: "VHV9616", gate: "A3", phone: "0168101372", fullName: "YEONG LAI KIN" },
-  { nickname: "Emily", plate: "WA2834Y", gate: "A3", phone: "0168101372", fullName: "YEONG LAI KIN" },
-  { nickname: "Emily", plate: "WWF9616", gate: "A3", phone: "0168101372", fullName: "YEONG LAI KIN" },
-  { nickname: "Uncle Sam", plate: "VEF8208", gate: "A3", phone: "0162570708", fullName: "LIM TEIN SENG" },
-  { nickname: "Aunty Sanny", plate: "BLM8286", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "WTK4284", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "WUF9866", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "WXR1353", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "BJU2930", gate: "A3", phone: "0172899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Uncle Chua", plate: "WPE9682", gate: "A3", phone: "0192299910", fullName: "CHUA YOON KIONG" },
+  { nickname: "Uncle Ong", plate: "WHP 8890", gate: "A3", phone: "012 6569825", fullName: "ONG SEE KIM" },
+  { nickname: "Aunty Kuan", plate: "WSW 6076", gate: "A3", phone: "012 3913357", fullName: "YAP SIEW KEAN" },
+  { nickname: "Emily", plate: "VHV 9616", gate: "A3", phone: "016 8101372", fullName: "YEONG LAI KIN" },
+  { nickname: "Emily", plate: "WA 2834Y", gate: "A3", phone: "016 8101372", fullName: "YEONG LAI KIN" },
+  { nickname: "Emily", plate: "WWF 9616", gate: "A3", phone: "016 8101372", fullName: "YEONG LAI KIN" },
+  { nickname: "Uncle Sam", plate: "VEF 8208", gate: "A3", phone: "016 2570708", fullName: "LIM TEIN SENG" },
+  { nickname: "Aunty Sanny", plate: "BLM 8286", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "WTK 4284", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "WUF 9866", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "WXR 1353", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Aunty Sanny", plate: "BJU 2930", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
+  { nickname: "Uncle Chua", plate: "WPE 9682", gate: "A3", phone: "019 2299910", fullName: "CHUA YOON KIONG" },
   // Gate B (28 Drivers)
-  { nickname: "Jasmin Ngian", plate: "WGU8795", gate: "B", phone: "016-2736002", fullName: "Ngian Geok Lan" },
-  { nickname: "Auntie 小云", plate: "BNW2263", gate: "B", phone: "016-2256631", fullName: "Lee Siew Wan" },
-  { nickname: "Auntie Amy", plate: "W8087Q", gate: "B", phone: "012-2342312", fullName: "Koo Hian Wah" },
-  { nickname: "Auntie May", plate: "WWT3657", gate: "B", phone: "012-2538799", fullName: "Chen Mei Fong" },
-  { nickname: "Auntie Ying", plate: "WPH2338", gate: "B", phone: "016-9932893", fullName: "Koh Yoke Ying" },
-  { nickname: "Auntie Lai", plate: "VKB9915", gate: "B", phone: "016-2213598", fullName: "Lai Yien Hua" },
-  { nickname: "Auntie Mi", plate: "VJB7782", gate: "B", phone: "011-59351933", fullName: "Yap Yuet Mei" },
-  { nickname: "Auntie Sharon", plate: "VAL9649", gate: "B", phone: "013-3335481", fullName: "Liau Sau Lun" },
-  { nickname: "Uncle Phan", plate: "VJ9492", gate: "B", phone: "019-5899492", fullName: "Phan Chai Choor" },
-  { nickname: "Auntie 秀蓉", plate: "VHG5609", gate: "B", phone: "012-6906208", fullName: "Leong Sow Yong" },
-  { nickname: "Auntie Elly", plate: "WVL6043", gate: "B", phone: "012-9189172", fullName: "Lee Kam Meei" },
-  { nickname: "Auntie Cindy", plate: "VKK9828", gate: "B", phone: "012-9398919", fullName: "Ong Saw Keng" },
-  { nickname: "Auntie Chew", plate: "WNB3013", gate: "B", phone: "016-2678899", fullName: "Chew Ah Choo" },
-  { nickname: "Auntie May (Sea)", plate: "BRM8688", gate: "B", phone: "012-6528831", fullName: "Tam Sea May" },
-  { nickname: "Auntie Moon", plate: "WC1591A", gate: "B", phone: "018-2888216", fullName: "Ong Moon San" },
-  { nickname: "Auntie 玉珍", plate: "BKD8484", gate: "B", phone: "012-3351859", fullName: "Ting Yoke Ting" },
-  { nickname: "英姐", plate: "VDM9869", gate: "B", phone: "016-3300580", fullName: "LEW AH YING" },
-  { nickname: "Auntie Mei Young", plate: "VEN1408", gate: "B", phone: "016-3358365", fullName: "LOW MEI YOUNG" },
-  { nickname: "Auntie Ling", plate: "WTS9583", gate: "B", phone: "012-6529834", fullName: "Wong Mee Ling" },
-  { nickname: "Auntie Agnes", plate: "VHR6896", gate: "B", phone: "012-3592756", fullName: "Ong Ai Siok" },
-  { nickname: "Uncle Lai", plate: "WUP6896", gate: "B", phone: "012-6650708", fullName: "Lai Yong Fong" },
-  { nickname: "Auntie Teoh", plate: "VMU6684", gate: "B", phone: "017-3555931", fullName: "Teoh Huey Lian" },
-  { nickname: "Auntie Yap", plate: "WB5095L", gate: "B", phone: "016-9763432", fullName: "Yap Mooi Yin" },
-  { nickname: "Uncle Lee", plate: "RY3383/WC2354D", gate: "B", phone: "012-6686260", fullName: "Lee Sing Long" },
-  { nickname: "Auntie Lee", plate: "WKW906", gate: "B", phone: "012-6686261", fullName: "Yee Siew Chin" },
-  { nickname: "Mdm. Ding Su Ling", plate: "WNU6281", gate: "B", phone: "016-3181162", fullName: "Ding Su Ling" },
-  { nickname: "Mdm. Ding Su See", plate: "BLH2489", gate: "B", phone: "016-7787677", fullName: "Ding Su See" },
-  { nickname: "Uncle Paul", plate: "WA9759G", gate: "B", phone: "016-6396323", fullName: "Khoo Kok Eng" },
+  { nickname: "Jasmin Ngian", plate: "WGU 8795", gate: "B", phone: "016 2736002", fullName: "Ngian Geok Lan" },
+  { nickname: "Auntie 小云", plate: "BNW 2263", gate: "B", phone: "016 2256631", fullName: "Lee Siew Wan" },
+  { nickname: "Auntie Amy", plate: "W 8087Q", gate: "B", phone: "012 2342312", fullName: "Koo Hian Wah" },
+  { nickname: "Auntie May", plate: "WWT 3657", gate: "B", phone: "012 2538799", fullName: "Chen Mei Fong" },
+  { nickname: "Auntie Ying", plate: "WPH 2338", gate: "B", phone: "016 9932893", fullName: "Koh Yoke Ying" },
+  { nickname: "Auntie Lai", plate: "VKB 9915", gate: "B", phone: "016 2213598", fullName: "Lai Yien Hua" },
+  { nickname: "Auntie Mi", plate: "VJB 7782", gate: "B", phone: "011 59351933", fullName: "Yap Yuet Mei" },
+  { nickname: "Auntie Sharon", plate: "VAL 9649", gate: "B", phone: "013 3335481", fullName: "Liau Sau Lun" },
+  { nickname: "Uncle Phan", plate: "VJ 9492", gate: "B", phone: "019 5899492", fullName: "Phan Chai Choor" },
+  { nickname: "Auntie 秀蓉", plate: "VHG 5609", gate: "B", phone: "012 6906208", fullName: "Leong Sow Yong" },
+  { nickname: "Auntie Elly", plate: "WVL 6043", gate: "B", phone: "012 9189172", fullName: "Lee Kam Meei" },
+  { nickname: "Auntie Cindy", plate: "VKK 9828", gate: "B", phone: "012 9398919", fullName: "Ong Saw Keng" },
+  { nickname: "Auntie Chew", plate: "WNB 3013", gate: "B", phone: "016 2678899", fullName: "Chew Ah Choo" },
+  { nickname: "Auntie May (Sea)", plate: "BRM 8688", gate: "B", phone: "012 6528831", fullName: "Tam Sea May" },
+  { nickname: "Auntie Moon", plate: "WC 1591A", gate: "B", phone: "018 2888216", fullName: "Ong Moon San" },
+  { nickname: "Auntie 玉珍", plate: "BKD 8484", gate: "B", phone: "012 3351859", fullName: "Ting Yoke Ting" },
+  { nickname: "英姐", plate: "VDM 9869", gate: "B", phone: "016 3300580", fullName: "LEW AH YING" },
+  { nickname: "Auntie Mei Young", plate: "VEN 1408", gate: "B", phone: "016 3358365", fullName: "LOW MEI YOUNG" },
+  { nickname: "Auntie Ling", plate: "WTS 9583", gate: "B", phone: "012 6529834", fullName: "Wong Mee Ling" },
+  { nickname: "Auntie Agnes", plate: "VHR 6896", gate: "B", phone: "012 3592756", fullName: "Ong Ai Siok" },
+  { nickname: "Uncle Lai", plate: "WUP 6896", gate: "B", phone: "012 6650708", fullName: "Lai Yong Fong" },
+  { nickname: "Auntie Teoh", plate: "VMU 6684", gate: "B", phone: "017 3555931", fullName: "Teoh Huey Lian" },
+  { nickname: "Auntie Yap", plate: "WB 5095L", gate: "B", phone: "016 9763432", fullName: "Yap Mooi Yin" },
+  { nickname: "Uncle Lee", plate: "RY 3383", gate: "B", phone: "012 6686260", fullName: "Lee Sing Long" },
+  { nickname: "Auntie Lee", plate: "WKW 906", gate: "B", phone: "012 6686261", fullName: "Yee Siew Chin" },
+  { nickname: "Mdm. Ding Su Ling", plate: "WNU 6281", gate: "B", phone: "016 3181162", fullName: "Ding Su Ling" },
+  { nickname: "Mdm. Ding Su See", plate: "BLH 2489", gate: "B", phone: "016 7787677", fullName: "Ding Su See" },
+  { nickname: "Uncle Paul", plate: "WA 9759G", gate: "B", phone: "016 6396323", fullName: "Khoo Kok Eng" },
 ];
 
 // --- COMPONENTS ---
@@ -476,6 +494,14 @@ export default function App() {
        setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，门均为必填）。");
        return;
     }
+    
+    // Duplicate check logic
+    const duplicatePlate = driversList.find(d => d.plate === driverInfo.plate);
+    if (duplicatePlate) {
+      setAlertMessage(`Pendaftaran ditolak. Plat kereta ${driverInfo.plate} telah didaftarkan sebelum ini.\n注册拒绝。车牌 ${driverInfo.plate} 已经被注册过了。`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "drivers"), {
@@ -745,7 +771,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: e.target.value})} />
+                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Hubungan / 关系</label>
@@ -817,11 +843,11 @@ export default function App() {
               <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.phone} onChange={e => setDriverInfo({...driverInfo, phone: e.target.value})} />
+                  <input type="tel" placeholder="Contoh: 012 3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.phone} onChange={e => setDriverInfo({...driverInfo, phone: formatPhone(e.target.value)})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Plat Kereta / 车牌号码</label>
-                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300" value={driverInfo.plate} onChange={e => setDriverInfo({...driverInfo, plate: e.target.value})} />
+                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300" value={driverInfo.plate} onChange={e => setDriverInfo({...driverInfo, plate: formatPlate(e.target.value)})} />
                 </div>
               </div>
 

@@ -10,7 +10,7 @@ import { db, kehadiranDb, kehadiranAuth } from './firebase';
 const formatPhone = (val) => {
   let cleaned = val.replace(/\D/g, ''); // 移除所有非数字字符
   if (cleaned.length > 3) {
-    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 11)}`; // 格式化为: 01x xxxxxxx
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 12)}`; // 格式化为: 01x xxxxxxx
   }
   return cleaned;
 };
@@ -24,50 +24,45 @@ const formatPlate = (val) => {
   return cleaned;
 };
 
-// --- TRANSCRIBED EXCEL DRIVERS DATA (Pre-formatted) ---
+// --- TRANSCRIBED EXCEL DRIVERS DATA (Pre-formatted & Merged) ---
 const excelDrivers = [
-  // Gate A3 (12 Drivers)
-  { nickname: "Uncle Ong", plate: "WHP 8890", gate: "A3", phone: "012 6569825", fullName: "ONG SEE KIM" },
-  { nickname: "Aunty Kuan", plate: "WSW 6076", gate: "A3", phone: "012 3913357", fullName: "YAP SIEW KEAN" },
-  { nickname: "Emily", plate: "VHV 9616", gate: "A3", phone: "016 8101372", fullName: "YEONG LAI KIN" },
-  { nickname: "Emily", plate: "WA 2834Y", gate: "A3", phone: "016 8101372", fullName: "YEONG LAI KIN" },
-  { nickname: "Emily", plate: "WWF 9616", gate: "A3", phone: "016 8101372", fullName: "YEONG LAI KIN" },
-  { nickname: "Uncle Sam", plate: "VEF 8208", gate: "A3", phone: "016 2570708", fullName: "LIM TEIN SENG" },
-  { nickname: "Aunty Sanny", plate: "BLM 8286", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "WTK 4284", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "WUF 9866", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "WXR 1353", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Aunty Sanny", plate: "BJU 2930", gate: "A3", phone: "017 2899262", fullName: "TANG YIN LOOT" },
-  { nickname: "Uncle Chua", plate: "WPE 9682", gate: "A3", phone: "019 2299910", fullName: "CHUA YOON KIONG" },
-  // Gate B (28 Drivers)
-  { nickname: "Jasmin Ngian", plate: "WGU 8795", gate: "B", phone: "016 2736002", fullName: "Ngian Geok Lan" },
-  { nickname: "Auntie 小云", plate: "BNW 2263", gate: "B", phone: "016 2256631", fullName: "Lee Siew Wan" },
-  { nickname: "Auntie Amy", plate: "W 8087Q", gate: "B", phone: "012 2342312", fullName: "Koo Hian Wah" },
-  { nickname: "Auntie May", plate: "WWT 3657", gate: "B", phone: "012 2538799", fullName: "Chen Mei Fong" },
-  { nickname: "Auntie Ying", plate: "WPH 2338", gate: "B", phone: "016 9932893", fullName: "Koh Yoke Ying" },
-  { nickname: "Auntie Lai", plate: "VKB 9915", gate: "B", phone: "016 2213598", fullName: "Lai Yien Hua" },
-  { nickname: "Auntie Mi", plate: "VJB 7782", gate: "B", phone: "011 59351933", fullName: "Yap Yuet Mei" },
-  { nickname: "Auntie Sharon", plate: "VAL 9649", gate: "B", phone: "013 3335481", fullName: "Liau Sau Lun" },
-  { nickname: "Uncle Phan", plate: "VJ 9492", gate: "B", phone: "019 5899492", fullName: "Phan Chai Choor" },
-  { nickname: "Auntie 秀蓉", plate: "VHG 5609", gate: "B", phone: "012 6906208", fullName: "Leong Sow Yong" },
-  { nickname: "Auntie Elly", plate: "WVL 6043", gate: "B", phone: "012 9189172", fullName: "Lee Kam Meei" },
-  { nickname: "Auntie Cindy", plate: "VKK 9828", gate: "B", phone: "012 9398919", fullName: "Ong Saw Keng" },
-  { nickname: "Auntie Chew", plate: "WNB 3013", gate: "B", phone: "016 2678899", fullName: "Chew Ah Choo" },
-  { nickname: "Auntie May (Sea)", plate: "BRM 8688", gate: "B", phone: "012 6528831", fullName: "Tam Sea May" },
-  { nickname: "Auntie Moon", plate: "WC 1591A", gate: "B", phone: "018 2888216", fullName: "Ong Moon San" },
-  { nickname: "Auntie 玉珍", plate: "BKD 8484", gate: "B", phone: "012 3351859", fullName: "Ting Yoke Ting" },
-  { nickname: "英姐", plate: "VDM 9869", gate: "B", phone: "016 3300580", fullName: "LEW AH YING" },
-  { nickname: "Auntie Mei Young", plate: "VEN 1408", gate: "B", phone: "016 3358365", fullName: "LOW MEI YOUNG" },
-  { nickname: "Auntie Ling", plate: "WTS 9583", gate: "B", phone: "012 6529834", fullName: "Wong Mee Ling" },
-  { nickname: "Auntie Agnes", plate: "VHR 6896", gate: "B", phone: "012 3592756", fullName: "Ong Ai Siok" },
-  { nickname: "Uncle Lai", plate: "WUP 6896", gate: "B", phone: "012 6650708", fullName: "Lai Yong Fong" },
-  { nickname: "Auntie Teoh", plate: "VMU 6684", gate: "B", phone: "017 3555931", fullName: "Teoh Huey Lian" },
-  { nickname: "Auntie Yap", plate: "WB 5095L", gate: "B", phone: "016 9763432", fullName: "Yap Mooi Yin" },
-  { nickname: "Uncle Lee", plate: "RY 3383", gate: "B", phone: "012 6686260", fullName: "Lee Sing Long" },
-  { nickname: "Auntie Lee", plate: "WKW 906", gate: "B", phone: "012 6686261", fullName: "Yee Siew Chin" },
-  { nickname: "Mdm. Ding Su Ling", plate: "WNU 6281", gate: "B", phone: "016 3181162", fullName: "Ding Su Ling" },
-  { nickname: "Mdm. Ding Su See", plate: "BLH 2489", gate: "B", phone: "016 7787677", fullName: "Ding Su See" },
-  { nickname: "Uncle Paul", plate: "WA 9759G", gate: "B", phone: "016 6396323", fullName: "Khoo Kok Eng" },
+  // Gate A3 (Merged Duplicates)
+  { nickname: "Uncle Ong", plates: ["WHP 8890"], gate: "A3", phones: ["012 6569825"], fullName: "ONG SEE KIM" },
+  { nickname: "Aunty Kuan", plates: ["WSW 6076"], gate: "A3", phones: ["012 3913357"], fullName: "YAP SIEW KEAN" },
+  { nickname: "Emily", plates: ["VHV 9616", "WA 2834Y", "WWF 9616"], gate: "A3", phones: ["016 8101372"], fullName: "YEONG LAI KIN" },
+  { nickname: "Uncle Sam", plates: ["VEF 8208"], gate: "A3", phones: ["016 2570708"], fullName: "LIM TEIN SENG" },
+  { nickname: "Aunty Sanny", plates: ["BLM 8286", "WTK 4284", "WUF 9866", "WXR 1353", "BJU 2930"], gate: "A3", phones: ["017 2899262"], fullName: "TANG YIN LOOT" },
+  { nickname: "Uncle Chua", plates: ["WPE 9682"], gate: "A3", phones: ["019 2299910"], fullName: "CHUA YOON KIONG" },
+  
+  // Gate B
+  { nickname: "Jasmin Ngian", plates: ["WGU 8795"], gate: "B", phones: ["016 2736002"], fullName: "Ngian Geok Lan" },
+  { nickname: "Auntie 小云", plates: ["BNW 2263"], gate: "B", phones: ["016 2256631"], fullName: "Lee Siew Wan" },
+  { nickname: "Auntie Amy", plates: ["W 8087Q"], gate: "B", phones: ["012 2342312"], fullName: "Koo Hian Wah" },
+  { nickname: "Auntie May", plates: ["WWT 3657"], gate: "B", phones: ["012 2538799"], fullName: "Chen Mei Fong" },
+  { nickname: "Auntie Ying", plates: ["WPH 2338"], gate: "B", phones: ["016 9932893"], fullName: "Koh Yoke Ying" },
+  { nickname: "Auntie Lai", plates: ["VKB 9915"], gate: "B", phones: ["016 2213598"], fullName: "Lai Yien Hua" },
+  { nickname: "Auntie Mi", plates: ["VJB 7782"], gate: "B", phones: ["011 59351933"], fullName: "Yap Yuet Mei" },
+  { nickname: "Auntie Sharon", plates: ["VAL 9649"], gate: "B", phones: ["013 3335481"], fullName: "Liau Sau Lun" },
+  { nickname: "Uncle Phan", plates: ["VJ 9492"], gate: "B", phones: ["019 5899492"], fullName: "Phan Chai Choor" },
+  { nickname: "Auntie 秀蓉", plates: ["VHG 5609"], gate: "B", phones: ["012 6906208"], fullName: "Leong Sow Yong" },
+  { nickname: "Auntie Elly", plates: ["WVL 6043"], gate: "B", phones: ["012 9189172"], fullName: "Lee Kam Meei" },
+  { nickname: "Auntie Cindy", plates: ["VKK 9828"], gate: "B", phones: ["012 9398919"], fullName: "Ong Saw Keng" },
+  { nickname: "Auntie Chew", plates: ["WNB 3013"], gate: "B", phones: ["016 2678899"], fullName: "Chew Ah Choo" },
+  { nickname: "Auntie May (Sea)", plates: ["BRM 8688"], gate: "B", phones: ["012 6528831"], fullName: "Tam Sea May" },
+  { nickname: "Auntie Moon", plates: ["WC 1591A"], gate: "B", phones: ["018 2888216"], fullName: "Ong Moon San" },
+  { nickname: "Auntie 玉珍", plates: ["BKD 8484"], gate: "B", phones: ["012 3351859"], fullName: "Ting Yoke Ting" },
+  { nickname: "英姐", plates: ["VDM 9869"], gate: "B", phones: ["016 3300580"], fullName: "LEW AH YING" },
+  { nickname: "Auntie Mei Young", plates: ["VEN 1408"], gate: "B", phones: ["016 3358365"], fullName: "LOW MEI YOUNG" },
+  { nickname: "Auntie Ling", plates: ["WTS 9583"], gate: "B", phones: ["012 6529834"], fullName: "Wong Mee Ling" },
+  { nickname: "Auntie Agnes", plates: ["VHR 6896"], gate: "B", phones: ["012 3592756"], fullName: "Ong Ai Siok" },
+  { nickname: "Uncle Lai", plates: ["WUP 6896"], gate: "B", phones: ["012 6650708"], fullName: "Lai Yong Fong" },
+  { nickname: "Auntie Teoh", plates: ["VMU 6684"], gate: "B", phones: ["017 3555931"], fullName: "Teoh Huey Lian" },
+  { nickname: "Auntie Yap", plates: ["WB 5095L"], gate: "B", phones: ["016 9763432"], fullName: "Yap Mooi Yin" },
+  { nickname: "Uncle Lee", plates: ["RY 3383", "WC 2354D"], gate: "B", phones: ["012 6686260"], fullName: "Lee Sing Long" }, // Merged multiple plates
+  { nickname: "Auntie Lee", plates: ["WKW 906"], gate: "B", phones: ["012 6686261"], fullName: "Yee Siew Chin" },
+  { nickname: "Mdm. Ding Su Ling", plates: ["WNU 6281"], gate: "B", phones: ["016 3181162"], fullName: "Ding Su Ling" },
+  { nickname: "Mdm. Ding Su See", plates: ["BLH 2489"], gate: "B", phones: ["016 7787677"], fullName: "Ding Su See" },
+  { nickname: "Uncle Paul", plates: ["WA 9759G"], gate: "B", phones: ["016 6396323"], fullName: "Khoo Kok Eng" },
 ];
 
 // --- COMPONENTS ---
@@ -181,7 +176,11 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
             <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
-              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
+              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => (
+                <option key={driver.id || i} value={driver.nickname}>
+                  {driver.nickname} ({(driver.plates || [driver.plate]).join(' / ')})
+                </option>
+              ))}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
@@ -231,7 +230,11 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <>
                 <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
-                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => <option key={driver.id || i} value={driver.nickname}>{driver.nickname} ({driver.plate})</option>)}
+                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => (
+                    <option key={driver.id || i} value={driver.nickname}>
+                      {driver.nickname} ({(driver.plates || [driver.plate]).join(' / ')})
+                    </option>
+                  ))}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
@@ -284,8 +287,8 @@ export default function App() {
   const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
   const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
 
-  // Driver Registration Form State
-  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phone: '', plate: '', gate: '' });
+  // Driver Registration Form State (Updated for Arrays)
+  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
 
   // Firebase Fetching States
   const [availableClasses, setAvailableClasses] = useState({});
@@ -426,8 +429,8 @@ export default function App() {
         await addDoc(collection(db, "drivers"), {
           fullName: driver.fullName,
           nickname: driver.nickname,
-          phone: driver.phone,
-          plate: driver.plate,
+          phones: driver.phones,
+          plates: driver.plates,
           gate: driver.gate,
           createdAt: serverTimestamp()
         });
@@ -488,28 +491,61 @@ export default function App() {
     }
   };
 
+  // Driver Submission Dynamic Arrays Handlers
+  const handleUpdateDriverPhones = (index, val) => {
+    const newArr = [...driverInfo.phones];
+    newArr[index] = formatPhone(val);
+    setDriverInfo({...driverInfo, phones: newArr});
+  }
+  const handleAddDriverPhone = () => setDriverInfo({...driverInfo, phones: [...driverInfo.phones, '']});
+  const handleRemoveDriverPhone = (index) => setDriverInfo({...driverInfo, phones: driverInfo.phones.filter((_, i) => i !== index)});
+
+  const handleUpdateDriverPlates = (index, val) => {
+    const newArr = [...driverInfo.plates];
+    newArr[index] = formatPlate(val);
+    setDriverInfo({...driverInfo, plates: newArr});
+  }
+  const handleAddDriverPlate = () => setDriverInfo({...driverInfo, plates: [...driverInfo.plates, '']});
+  const handleRemoveDriverPlate = (index) => setDriverInfo({...driverInfo, plates: driverInfo.plates.filter((_, i) => i !== index)});
+
   // Driver Submit Handler
   const handleDriverSubmit = async () => {
-    if (!driverInfo.fullName || !driverInfo.plate || !driverInfo.nickname || !driverInfo.gate) {
-       setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，门均为必填）。");
+    const cleanedPhones = driverInfo.phones.filter(p => p.trim() !== '');
+    const cleanedPlates = driverInfo.plates.filter(p => p.trim() !== '');
+
+    if (!driverInfo.fullName || !driverInfo.nickname || !driverInfo.gate || cleanedPhones.length === 0 || cleanedPlates.length === 0) {
+       setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Telefon & Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，电话与门均为必填）。");
        return;
     }
     
-    // Duplicate check logic
-    const duplicatePlate = driversList.find(d => d.plate === driverInfo.plate);
+    // Duplicate check logic across ALL registered plates and phones
+    const flatPlates = driversList.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => p.replace(/\s/g, ''));
+    const flatPhones = driversList.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => p.replace(/\s/g, ''));
+
+    const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(p.replace(/\s/g, '')));
     if (duplicatePlate) {
-      setAlertMessage(`Pendaftaran ditolak. Plat kereta ${driverInfo.plate} telah didaftarkan sebelum ini.\n注册拒绝。车牌 ${driverInfo.plate} 已经被注册过了。`);
+      setAlertMessage(`Pendaftaran ditolak. Plat kereta ${duplicatePlate} telah didaftarkan sebelum ini.\n注册拒绝。车牌 ${duplicatePlate} 已经被别人注册过了。`);
+      return;
+    }
+
+    const duplicatePhone = cleanedPhones.find(p => flatPhones.includes(p.replace(/\s/g, '')));
+    if (duplicatePhone) {
+      setAlertMessage(`Pendaftaran ditolak. No Telefon ${duplicatePhone} telah didaftarkan sebelum ini.\n注册拒绝。电话号码 ${duplicatePhone} 已经被别人注册过了。`);
       return;
     }
 
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, "drivers"), {
-        ...driverInfo,
+        fullName: driverInfo.fullName,
+        nickname: driverInfo.nickname,
+        gate: driverInfo.gate,
+        phones: cleanedPhones,
+        plates: cleanedPlates,
         createdAt: serverTimestamp()
       });
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
-      setDriverInfo({ fullName: '', nickname: '', phone: '', plate: '', gate: '' });
+      setDriverInfo({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
       // update driver list state immediately
       fetchDriversList();
       handleBack();
@@ -771,7 +807,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012-3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
+                  <input type="tel" placeholder="Contoh: 012 3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Hubungan / 关系</label>
@@ -840,19 +876,32 @@ export default function App() {
                 <p className="text-xs text-gray-400 mt-2 font-medium">Nama ini akan dipaparkan dalam senarai awam.</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012 3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.phone} onChange={e => setDriverInfo({...driverInfo, phone: formatPhone(e.target.value)})} />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Plat Kereta / 车牌号码</label>
-                  <input type="text" placeholder="Contoh: WAA 1234" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300" value={driverInfo.plate} onChange={e => setDriverInfo({...driverInfo, plate: formatPlate(e.target.value)})} />
-                </div>
+              {/* Dynamic Phones Input */}
+              <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
+                {driverInfo.phones.map((phone, i) => (
+                  <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
+                    <input type="tel" placeholder="Contoh: 012 3456789" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
+                    {i > 0 && <button type="button" onClick={() => handleRemoveDriverPhone(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddDriverPhone} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Phone</button>
+              </div>
+
+              {/* Dynamic Plates Input */}
+              <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
+                {driverInfo.plates.map((plate, i) => (
+                  <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
+                    <input type="text" placeholder="Contoh: WAA 1234" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
+                    {i > 0 && <button type="button" onClick={() => handleRemoveDriverPlate(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddDriverPlate} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Plate</button>
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
+                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
                 <div className="grid grid-cols-2 gap-4">
                   {['A3', 'B'].map(gate => (
                     <label key={gate} className="border-2 border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 hover:border-green-200 focus-within:ring-4 ring-green-500/20 transition-all duration-300 has-[:checked]:bg-green-50/80 has-[:checked]:border-green-500 has-[:checked]:shadow-sm hover:-translate-y-0.5 active:scale-95">
@@ -898,11 +947,13 @@ export default function App() {
                     <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
                       <Bus size={28} strokeWidth={1.5} />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.phone || driver.hp}</div>
-                      <div className="flex items-center">
-                        <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300 truncate">{driver.nickname}</div>
+                      <div className="text-sm font-semibold text-gray-500 mb-2 truncate">{(driver.phones || [driver.phone]).filter(Boolean).join(' / ')}</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
+                          <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -921,11 +972,13 @@ export default function App() {
                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
                       <Bus size={28} strokeWidth={1.5} />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-500 mb-1.5">{driver.phone || driver.hp}</div>
-                      <div className="flex items-center">
-                        <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300 truncate">{driver.nickname}</div>
+                      <div className="text-sm font-semibold text-gray-500 mb-2 truncate">{(driver.phones || [driver.phone]).filter(Boolean).join(' / ')}</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
+                          <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -964,7 +1017,7 @@ export default function App() {
                 <div className="relative mb-5">
                   <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                     <option value="">Semua Pemandu / 所有司机</option>
-                    {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({d.plate})</option>)}
+                    {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).join(' / ')})</option>)}
                   </select>
                 </div>
                 <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">
@@ -985,7 +1038,7 @@ export default function App() {
                     <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
                       <div className="overflow-hidden pr-2">
                         <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
-                        <div className="text-xs font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{driver.plate}</span> | Tel: <span className="text-gray-700">{driver.phone || driver.hp}</span></div>
+                        <div className="text-xs font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
                       </div>
                       <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 flex-shrink-0 opacity-50 group-hover:opacity-100" title="Padam Pemandu">
                         <Trash2 size={16} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3 } from 'lucide-react';
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
@@ -172,9 +172,12 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
       </div>
 
       <div className="mb-6">
-        <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Sesi / 班次</label>
-        <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 cursor-pointer" value={data.session} onChange={(e) => handleChange('session', e.target.value)}>
-          <option value="">Pilih / 选择</option>
+        <label className="block text-xs font-bold mb-1.5 text-gray-400 uppercase tracking-wider flex items-center justify-between">
+          <span>Sesi / 班次</span>
+          <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500">Auto</span>
+        </label>
+        <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 font-bold outline-none cursor-not-allowed opacity-80" value={data.session} disabled={true}>
+          <option value="">- Automatik mengikut Tahun -</option>
           <option value="morning">Pagi / 上午班</option>
           <option value="afternoon">Petang / 下午班</option>
         </select>
@@ -293,6 +296,9 @@ export default function App() {
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress'
+  const [expandedClass, setExpandedClass] = useState(null);
+
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -652,6 +658,7 @@ export default function App() {
     if (adminPwd === correctPassword) {
       setIsAdmin(true);
       setView('admin');
+      setAdminTab('submissions'); // Default tab
       setAdminModalOpen(false);
       setAdminPwd('');
     } else {
@@ -713,6 +720,46 @@ export default function App() {
 
     return matchesQuery && matchesDriver;
   });
+
+  // --- CALCULATION FOR CLASS PROGRESS ---
+  const getProgressStats = () => {
+    const submittedStudentsSet = new Set();
+    submissions.forEach(sub => {
+      (sub.children || []).forEach(c => {
+        if (c.year && c.kelas && c.name) {
+          submittedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);
+        }
+      });
+    });
+
+    const classStats = [];
+    Object.keys(availableClasses).sort().forEach(year => {
+      (availableClasses[year] || []).forEach(kelas => {
+        const classKey = `${year}-${kelas}`;
+        const students = studentsDict[classKey] || [];
+        const total = students.length;
+        let submittedCount = 0;
+        students.forEach(student => {
+          if(submittedStudentsSet.has(`${year}-${kelas}-${student}`)) {
+            submittedCount++;
+          }
+        });
+        classStats.push({
+          year,
+          kelas,
+          classKey,
+          total,
+          submitted: submittedCount,
+          students,
+          submittedSet: submittedStudentsSet
+        });
+      });
+    });
+
+    return classStats;
+  };
+
+  const progressStats = getProgressStats();
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12 overflow-x-hidden">
@@ -1224,147 +1271,226 @@ export default function App() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* 左侧区域：搜索控制 & 系统设置 */}
-            <div className="lg:col-span-4 space-y-6 h-fit">
-              {/* Search Controls */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
-                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-                <div className="relative mb-5">
-                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
-                    <option value="">Semua Pemandu / 所有司机</option>
-                    {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).join(' / ')})</option>)}
-                  </select>
-                </div>
-                <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">
-                  Jumpa / 找到: <span className="text-blue-600 font-black text-base">{filteredSubmissions.length}</span> rekod
-                </div>
-              </div>
+          {/* ADMIN TABS NAVIGATION */}
+          <div className="flex flex-wrap gap-4 mb-8">
+            <button 
+              onClick={() => setAdminTab('submissions')} 
+              className={`px-6 py-3 rounded-2xl font-extrabold text-sm transition-all duration-300 flex items-center shadow-sm hover:shadow-md ${adminTab === 'submissions' ? 'bg-blue-600 text-white ring-2 ring-blue-600/50 scale-105' : 'bg-white text-gray-600 hover:bg-blue-50 border border-gray-200'}`}
+            >
+              <FileText size={18} className="mr-2" /> Senarai Rekod / 提交记录
+            </button>
+            <button 
+              onClick={() => setAdminTab('progress')} 
+              className={`px-6 py-3 rounded-2xl font-extrabold text-sm transition-all duration-300 flex items-center shadow-sm hover:shadow-md ${adminTab === 'progress' ? 'bg-green-600 text-white ring-2 ring-green-600/50 scale-105' : 'bg-white text-gray-600 hover:bg-green-50 border border-gray-200'}`}
+            >
+              <BarChart3 size={18} className="mr-2" /> Laporan Kelas / 班级进度
+            </button>
+          </div>
 
-              {/* Manage Drivers */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                <div className="flex justify-between items-center mb-5">
-                  <h3 className="font-extrabold text-lg flex items-center text-gray-900"><Bus size={20} className="mr-2.5 text-purple-500"/> Senarai Pemandu</h3>
-                  <button onClick={handleImportExcelDrivers} disabled={isImporting} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center disabled:opacity-50">
-                    {isImporting ? <Loader2 size={14} className="animate-spin" /> : <><DownloadCloud size={14} className="mr-1"/> Import 40</>}
-                  </button>
-                </div>
-                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                  {driversList.map(driver => (
-                    <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
-                      <div className="overflow-hidden pr-2">
-                        <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
-                        <div className="text-[11px] font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
-                      </div>
-                      <div className="flex items-center flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
-                         <button onClick={() => setEditingDriver({
-                           ...driver,
-                           phones: driver.phones && driver.phones.length > 0 ? driver.phones : (driver.phone ? [driver.phone] : ['']),
-                           plates: driver.plates && driver.plates.length > 0 ? driver.plates : (driver.plate ? [driver.plate] : [''])
-                         })} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200" title="Edit Pemandu">
-                           <Pencil size={16} />
-                         </button>
-                         <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200" title="Padam Pemandu">
-                           <Trash2 size={16} />
-                         </button>
-                      </div>
-                    </div>
-                  ))}
-                  {driversList.length === 0 && <div className="text-sm font-medium text-gray-400 text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
-                </div>
-              </div>
-
-              {/* System Settings */}
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900">Tetapan / 设置</h3>
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <div className="font-bold text-gray-800 text-sm">Pendaftaran Pemandu</div>
-                    <div className="text-xs text-gray-500 mt-0.5 mb-3">Buka/tutup borang awam.</div>
+          {adminTab === 'submissions' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
+              {/* 左侧区域：搜索控制 & 系统设置 */}
+              <div className="lg:col-span-4 space-y-6 h-fit">
+                {/* Search Controls */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                  <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
+                  <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                  <div className="relative mb-5">
+                    <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
+                      <option value="">Semua Pemandu / 所有司机</option>
+                      {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).join(' / ')})</option>)}
+                    </select>
                   </div>
-                  <button 
-                    onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
-                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border border-green-200'}`}
-                  >
-                    {isDriverFormOpen ? 'Tutup Borang (Close)' : 'Buka Borang (Open)'}
-                  </button>
+                  <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">
+                    Jumpa / 找到: <span className="text-blue-600 font-black text-base">{filteredSubmissions.length}</span> rekod
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* 右侧区域：Results List */}
-            <div className="lg:col-span-8 space-y-5">
-              {isFetchingAdmin ? (
-                <div className="flex flex-col items-center justify-center p-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
-                  <Loader2 size={40} className="animate-spin text-blue-500 mb-4" />
-                  <p className="text-gray-500 font-bold tracking-wide">Memuat turun data...</p>
-                </div>
-              ) : filteredSubmissions.length === 0 ? (
-                <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-gray-300 shadow-sm text-gray-400 font-medium">
-                  <FileText size={48} className="mx-auto mb-4 opacity-20" />
-                  Tiada rekod dijumpai / 未找到任何记录。
-                </div>
-              ) : (
-                filteredSubmissions.map(sub => (
-                  <div key={sub.id} className="bg-white p-6 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-all duration-300 group">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-400 to-indigo-500 opacity-80"></div>
-                    
-                    {/* Header: Parent Info & Delete */}
-                    <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
-                      <div>
-                        <h4 className="font-extrabold text-xl text-gray-900 tracking-tight flex items-center">
-                          {sub.parent?.name || "Tiada Nama"} 
-                          <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg ml-3 tracking-wide">{sub.parent?.relation}</span>
-                        </h4>
-                        <div className="text-sm font-semibold text-gray-500 mt-1.5 flex items-center">
-                          <span className="bg-gray-50 px-2 py-0.5 rounded border border-gray-200 mr-2">{sub.parent?.phone}</span> 
-                          IC: {sub.parent?.ic}
+                {/* Manage Drivers */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                  <div className="flex justify-between items-center mb-5">
+                    <h3 className="font-extrabold text-lg flex items-center text-gray-900"><Bus size={20} className="mr-2.5 text-purple-500"/> Senarai Pemandu</h3>
+                    <button onClick={handleImportExcelDrivers} disabled={isImporting} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center disabled:opacity-50">
+                      {isImporting ? <Loader2 size={14} className="animate-spin" /> : <><DownloadCloud size={14} className="mr-1"/> Import 40</>}
+                    </button>
+                  </div>
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                    {driversList.map(driver => (
+                      <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
+                        <div className="overflow-hidden pr-2">
+                          <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
+                          <div className="text-[11px] font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
+                        </div>
+                        <div className="flex items-center flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
+                           <button onClick={() => setEditingDriver({
+                             ...driver,
+                             phones: driver.phones && driver.phones.length > 0 ? driver.phones : (driver.phone ? [driver.phone] : ['']),
+                             plates: driver.plates && driver.plates.length > 0 ? driver.plates : (driver.plate ? [driver.plate] : [''])
+                           })} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200" title="Edit Pemandu">
+                             <Pencil size={16} />
+                           </button>
+                           <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200" title="Padam Pemandu">
+                             <Trash2 size={16} />
+                           </button>
                         </div>
                       </div>
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setEditingSub(sub)} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200 active:scale-95" title="Edit Rekod">
-                          <Pencil size={18} />
-                        </button>
-                        <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 active:scale-95" title="Padam Rekod">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
+                    ))}
+                    {driversList.length === 0 && <div className="text-sm font-medium text-gray-400 text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
+                  </div>
+                </div>
 
-                    {/* Children List */}
-                    <div className="space-y-3">
-                      {(sub.children || []).map((c, i) => {
-                        const actualLeaveDriver = c.sameDriver ? c.arriveDriver : c.leaveDriver;
-                        const actualLeaveOther = c.sameDriver ? c.arriveDriverOther : c.leaveDriverOther;
-                        
-                        return (
-                          <div key={i} className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 hover:bg-white hover:border-gray-200 transition-colors duration-300">
-                            <div className="font-extrabold text-blue-900 text-sm mb-2.5 flex items-center">
-                              <span className="w-6 h-6 bg-blue-100 text-blue-800 flex items-center justify-center rounded-full text-xs mr-2.5 shadow-inner">{i+1}</span>
-                              {c.name || "Nama tidak diisi"} <span className="text-gray-500 font-medium ml-2">({c.year} {c.kelas}) - {c.session}</span>
+                {/* System Settings */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+                  <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900">Tetapan / 设置</h3>
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <div className="font-bold text-gray-800 text-sm">Pendaftaran Pemandu</div>
+                      <div className="text-xs text-gray-500 mt-0.5 mb-3">Buka/tutup borang awam.</div>
+                    </div>
+                    <button 
+                      onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
+                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border border-green-200'}`}
+                    >
+                      {isDriverFormOpen ? 'Tutup Borang (Close)' : 'Buka Borang (Open)'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 右侧区域：Results List */}
+              <div className="lg:col-span-8 space-y-5">
+                {isFetchingAdmin ? (
+                  <div className="flex flex-col items-center justify-center p-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                    <Loader2 size={40} className="animate-spin text-blue-500 mb-4" />
+                    <p className="text-gray-500 font-bold tracking-wide">Memuat turun data...</p>
+                  </div>
+                ) : filteredSubmissions.length === 0 ? (
+                  <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-gray-300 shadow-sm text-gray-400 font-medium">
+                    <FileText size={48} className="mx-auto mb-4 opacity-20" />
+                    Tiada rekod dijumpai / 未找到任何记录。
+                  </div>
+                ) : (
+                  filteredSubmissions.map(sub => (
+                    <div key={sub.id} className="bg-white p-6 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-all duration-300 group">
+                      <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-400 to-indigo-500 opacity-80"></div>
+                      
+                      {/* Header: Parent Info & Delete */}
+                      <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
+                        <div>
+                          <h4 className="font-extrabold text-xl text-gray-900 tracking-tight flex items-center">
+                            {sub.parent?.name || "Tiada Nama"} 
+                            <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg ml-3 tracking-wide">{sub.parent?.relation}</span>
+                          </h4>
+                          <div className="text-sm font-semibold text-gray-500 mt-1.5 flex items-center">
+                            <span className="bg-gray-50 px-2 py-0.5 rounded border border-gray-200 mr-2">{sub.parent?.phone}</span> 
+                            IC: {sub.parent?.ic}
+                          </div>
+                        </div>
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditingSub(sub)} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200 active:scale-95" title="Edit Rekod">
+                            <Pencil size={18} />
+                          </button>
+                          <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 active:scale-95" title="Padam Rekod">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Children List */}
+                      <div className="space-y-3">
+                        {(sub.children || []).map((c, i) => {
+                          const actualLeaveDriver = c.sameDriver ? c.arriveDriver : c.leaveDriver;
+                          const actualLeaveOther = c.sameDriver ? c.arriveDriverOther : c.leaveDriverOther;
+                          
+                          return (
+                            <div key={i} className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 hover:bg-white hover:border-gray-200 transition-colors duration-300">
+                              <div className="font-extrabold text-blue-900 text-sm mb-2.5 flex items-center">
+                                <span className="w-6 h-6 bg-blue-100 text-blue-800 flex items-center justify-center rounded-full text-xs mr-2.5 shadow-inner">{i+1}</span>
+                                {c.name || "Nama tidak diisi"} <span className="text-gray-500 font-medium ml-2">({c.year} {c.kelas}) - {c.session}</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
+                                <div className="bg-green-50/50 text-green-900 p-3 rounded-xl border border-green-100">
+                                  <span className="block text-green-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Datang ({c.arriveGate})</span>
+                                  {c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver || "-"}
+                                </div>
+                                <div className="bg-orange-50/50 text-orange-900 p-3 rounded-xl border border-orange-100">
+                                  <span className="block text-orange-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Balik ({c.leaveGate})</span>
+                                  {actualLeaveDriver === 'others' ? actualLeaveOther : actualLeaveDriver || "-"}
+                                  {c.isRound2 && <span className="ml-1.5 text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">(Pusingan 2)</span>}
+                                </div>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
-                              <div className="bg-green-50/50 text-green-900 p-3 rounded-xl border border-green-100">
-                                <span className="block text-green-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Datang ({c.arriveGate})</span>
-                                {c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver || "-"}
-                              </div>
-                              <div className="bg-orange-50/50 text-orange-900 p-3 rounded-xl border border-orange-100">
-                                <span className="block text-orange-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Balik ({c.leaveGate})</span>
-                                {actualLeaveDriver === 'others' ? actualLeaveOther : actualLeaveDriver || "-"}
-                                {c.isRound2 && <span className="ml-1.5 text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">(Pusingan 2)</span>}
-                              </div>
+                          );
+                        })}
+                      </div>
+                      <div className="text-[10px] font-mono text-gray-300 mt-4 text-right">ID: {sub.id}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            /* PROGRESS TAB CONTENT */
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-in fade-in duration-500">
+              <div className="mb-6">
+                <h3 className="font-black text-2xl text-gray-900 tracking-tight">Laporan Kemajuan Kelas</h3>
+                <p className="text-gray-500 font-medium mt-1">班级表格提交进度表</p>
+              </div>
+
+              {isFetchingAdmin ? (
+                <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-green-500" /></div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {progressStats.map(stat => {
+                    const percentage = stat.total > 0 ? Math.round((stat.submitted / stat.total) * 100) : 0;
+                    const isComplete = percentage === 100 && stat.total > 0;
+                    
+                    return (
+                      <div key={stat.classKey} className={`border rounded-2xl overflow-hidden transition-all duration-300 ${expandedClass === stat.classKey ? 'border-green-400 shadow-md ring-4 ring-green-500/10' : 'border-gray-200 hover:border-green-300 hover:shadow-md'}`}>
+                        {/* Card Header (Clickable) */}
+                        <div 
+                          className={`p-5 cursor-pointer flex flex-col justify-between h-24 ${expandedClass === stat.classKey ? 'bg-green-50/50' : 'bg-gray-50/50 hover:bg-gray-50'}`}
+                          onClick={() => setExpandedClass(expandedClass === stat.classKey ? null : stat.classKey)}
+                        >
+                          <div className="flex justify-between items-start w-full">
+                            <div className="font-extrabold text-gray-900 text-lg tracking-tight">Tahun {stat.year} {stat.kelas}</div>
+                            <div className={`font-black text-sm px-2.5 py-1 rounded-lg ${isComplete ? 'bg-green-100 text-green-700' : 'bg-white border border-gray-200 text-gray-600 shadow-sm'}`}>
+                              {percentage}%
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                    <div className="text-[10px] font-mono text-gray-300 mt-4 text-right">ID: {sub.id}</div>
-                  </div>
-                ))
+                          <div className="text-xs font-semibold text-gray-500 flex justify-between w-full items-end mt-2">
+                             <span>{stat.submitted} / {stat.total} Pelajar</span>
+                             {isComplete && <CheckCircle2 size={16} className="text-green-500" />}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar Line */}
+                        <div className="w-full bg-gray-100 h-2">
+                          <div className={`h-2 transition-all duration-1000 ease-out ${isComplete ? 'bg-green-500' : 'bg-green-400'}`} style={{ width: `${percentage}%` }}></div>
+                        </div>
+
+                        {/* Expanded Dropdown Content */}
+                        {expandedClass === stat.classKey && (
+                          <div className="p-4 bg-white max-h-72 overflow-y-auto custom-scrollbar border-t border-green-100">
+                             {stat.students.map((student, sIdx) => {
+                               const isSubbed = stat.submittedSet.has(`${stat.year}-${stat.kelas}-${student}`);
+                               return (
+                                 <div key={sIdx} className={`text-xs font-bold p-3 mb-2 rounded-xl flex justify-between items-center border transition-all ${isSubbed ? 'bg-green-50/50 border-green-200/60 text-green-800 shadow-sm' : 'bg-red-50/50 border-red-200/60 text-red-800'}`}>
+                                   <span className="truncate pr-2">{student}</span>
+                                   {isSubbed ? <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" /> : <XCircle size={16} className="text-red-500 flex-shrink-0" />}
+                                 </div>
+                               );
+                             })}
+                             {stat.students.length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

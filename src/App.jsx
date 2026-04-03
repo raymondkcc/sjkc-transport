@@ -7,6 +7,17 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- FORMATTER FUNCTIONS ---
+const formatIC = (val) => {
+  let cleaned = val.replace(/\D/g, ''); // 只保留数字
+  if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); // 限制最多 12 位
+  if (cleaned.length > 8) {
+    return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; // 格式化为 123456-12-3456
+  } else if (cleaned.length > 6) {
+    return `${cleaned.slice(0, 6)}-${cleaned.slice(6)}`;
+  }
+  return cleaned;
+};
+
 const formatPhone = (val) => {
   let cleaned = val.replace(/\D/g, ''); 
   if (cleaned.length > 3) {
@@ -184,7 +195,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
-               <input type="text" placeholder="Nyatakan Nama & Plat Kereta / 请注明" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
+               <input type="text" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
             )}
           </div>
         )}
@@ -238,7 +249,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
-                   <input type="text" placeholder="Nyatakan Nama & Plat Kereta / 请注明" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
+                   <input type="text" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
                 )}
               </>
             ) : (
@@ -775,9 +786,9 @@ export default function App() {
             <div className="mb-6">
               <h4 className="font-extrabold text-sm text-blue-600 mb-3 uppercase tracking-wider flex items-center"><Users size={16} className="mr-1.5"/>Maklumat Penjaga</h4>
               <div className="grid grid-cols-2 gap-4">
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.name || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} placeholder="Nama Penuh" />
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.phone || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: e.target.value}})} placeholder="No Telefon" />
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent?.ic || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: e.target.value}})} placeholder="No IC" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.name || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.phone || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: formatPhone(e.target.value)}})} />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent?.ic || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: formatIC(e.target.value)}})} />
               </div>
             </div>
 
@@ -791,18 +802,18 @@ export default function App() {
                           const newChildren = [...editingSub.children];
                           newChildren[idx].name = e.target.value;
                           setEditingSub({...editingSub, children: newChildren});
-                       }} placeholder="Nama Pelajar" />
+                       }} />
                        <div className="flex gap-2">
                          <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.year || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].year = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} placeholder="Tahun" />
+                         }} />
                          <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.kelas || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].kelas = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} placeholder="Kelas" />
+                         }} />
                        </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -813,7 +824,7 @@ export default function App() {
                             newChildren[idx].arriveDriver = 'others'; 
                             newChildren[idx].arriveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} placeholder="Nama Pemandu" />
+                         }} />
                        </div>
                        <div>
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Balik ({c.leaveGate})</label>
@@ -823,7 +834,7 @@ export default function App() {
                             newChildren[idx].leaveDriver = 'others';
                             newChildren[idx].leaveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} placeholder="Nama Pemandu" />
+                         }} />
                        </div>
                     </div>
                  </div>
@@ -883,7 +894,7 @@ export default function App() {
             </div>
             <h2 className="text-2xl font-extrabold mb-6 text-gray-900 text-center">Admin Access</h2>
             <form onSubmit={handleAdminLogin}>
-              <input type="password" placeholder="Kata Laluan / Password" className="w-full p-4 border border-gray-200 rounded-2xl mb-6 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 outline-none text-center tracking-widest transition-all duration-300" value={adminPwd} onChange={e => setAdminPwd(e.target.value)} autoFocus />
+              <input type="password" placeholder="" className="w-full p-4 border border-gray-200 rounded-2xl mb-6 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 outline-none text-center tracking-widest transition-all duration-300" value={adminPwd} onChange={e => setAdminPwd(e.target.value)} autoFocus />
               <div className="flex gap-4">
                 <button type="button" onClick={() => setAdminModalOpen(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all duration-300 active:scale-95">Batal / 取消</button>
                 <button type="submit" className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">Login / 登录</button>
@@ -992,16 +1003,16 @@ export default function App() {
             <div className="space-y-5">
               <div>
                 <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh / 全名</label>
-                <input type="text" placeholder="Contoh: Tan Ah Kao" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.name} onChange={e => setParentInfo({...parentInfo, name: e.target.value})} />
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.name} onChange={e => setParentInfo({...parentInfo, name: e.target.value})} />
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Kad Pengenalan / 身份证号码</label>
-                <input type="text" placeholder="Contoh: 880101-10-5555" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.ic} onChange={e => setParentInfo({...parentInfo, ic: e.target.value})} />
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.ic} onChange={e => setParentInfo({...parentInfo, ic: formatIC(e.target.value)})} />
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
-                  <input type="tel" placeholder="Contoh: 012 3456789" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
+                  <input type="tel" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Hubungan / 关系</label>
@@ -1014,7 +1025,7 @@ export default function App() {
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Alamat Rumah / 家庭住址</label>
-                <textarea placeholder="Alamat penuh..." className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" rows="2" value={parentInfo.address} onChange={e => setParentInfo({...parentInfo, address: e.target.value})}></textarea>
+                <textarea className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" rows="2" value={parentInfo.address} onChange={e => setParentInfo({...parentInfo, address: e.target.value})}></textarea>
               </div>
             </div>
           </div>
@@ -1061,12 +1072,12 @@ export default function App() {
             <div className="space-y-6">
               <div>
                 <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh Pemandu / 司机全名 (IC)</label>
-                <input type="text" placeholder="Contoh: Lim Ah Beng" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
               </div>
               
               <div>
                 <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
-                <input type="text" placeholder="Contoh: Uncle Ah Meng / Auntie Shirley" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
                 <p className="text-xs text-gray-400 mt-2 font-medium">Nama ini akan dipaparkan dalam senarai awam.</p>
               </div>
 
@@ -1075,7 +1086,7 @@ export default function App() {
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
                 {driverInfo.phones.map((phone, i) => (
                   <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
-                    <input type="tel" placeholder="Contoh: 012 3456789" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
+                    <input type="tel" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
                     {i > 0 && <button type="button" onClick={() => handleRemoveDriverPhone(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
                   </div>
                 ))}
@@ -1087,7 +1098,7 @@ export default function App() {
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
                 {driverInfo.plates.map((plate, i) => (
                   <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
-                    <input type="text" placeholder="Contoh: WAA 1234" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
+                    <input type="text" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
                     {i > 0 && <button type="button" onClick={() => handleRemoveDriverPlate(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
                   </div>
                 ))}
@@ -1127,7 +1138,7 @@ export default function App() {
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search size={20} className="text-gray-400 group-focus-within:text-purple-500 transition-colors duration-300" />
             </div>
-            <input type="text" placeholder="Cari nama pemandu atau plat kereta..." className="w-full pl-12 p-4 border border-gray-200 rounded-2xl bg-white hover:border-purple-300 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none shadow-sm transition-all duration-300 font-medium" />
+            <input type="text" className="w-full pl-12 p-4 border border-gray-200 rounded-2xl bg-white hover:border-purple-300 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none shadow-sm transition-all duration-300 font-medium" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1205,7 +1216,7 @@ export default function App() {
               {/* Search Controls */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
                 <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
-                <input type="text" placeholder="Cari nama ibu bapa, IC, murid..." className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                 <div className="relative mb-5">
                   <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                     <option value="">Semua Pemandu / 所有司机</option>

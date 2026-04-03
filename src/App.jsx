@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3, Phone, IdCard } from 'lucide-react';
-import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+// Added setDoc and onSnapshot for the global toggle
+import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, setDoc, onSnapshot } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
 // 引入真实数据库（完全基于您的生产环境配置）
@@ -311,9 +312,11 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress' | 'drivers'
   const [expandedClass, setExpandedClass] = useState(null);
-  const [adminDriverSearch, setAdminDriverSearch] = useState(''); // NEW
+  const [adminDriverSearch, setAdminDriverSearch] = useState(''); 
 
+  // Global driver form state
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
+  
   const [submissions, setSubmissions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
@@ -350,6 +353,22 @@ export default function App() {
   // Configure Chrome Tab Header
   useEffect(() => {
     document.title = "SJKC Sin Ming Transport System";
+  }, []);
+
+  // Global Listener for Driver Form Status
+  useEffect(() => {
+    const configRef = doc(db, "app_settings", "config");
+    
+    // onSnapshot listens for changes in real-time
+    const unsubscribe = onSnapshot(configRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setIsDriverFormOpen(docSnap.data().isDriverFormOpen !== false); // Defaults to true if undefined
+      }
+    }, (error) => {
+      console.error("Error listening to global form state:", error);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
   // Function to fetch drivers from DB (with LocalStorage Cache!)
@@ -713,6 +732,26 @@ export default function App() {
       setAdminPwd('');
     } else {
       setAlertMessage("Katalaluan Salah \n 密码错误 (Incorrect Password)!");
+    }
+  };
+
+  // Global Toggle Handler for Admin
+  const handleToggleDriverForm = async () => {
+    const newState = !isDriverFormOpen;
+    // Optimistically update UI
+    setIsDriverFormOpen(newState);
+
+    try {
+      await setDoc(doc(db, "app_settings", "config"), { 
+        isDriverFormOpen: newState 
+      }, { merge: true }); // Merge prevents crash if doc doesn't exist yet
+      
+      setAlertMessage(`Pendaftaran Pemandu kini ${newState ? 'DIBUKA' : 'DITUTUP'}. \n 司机注册通道已${newState ? '开启' : '关闭'}。`);
+    } catch (error) {
+      console.error("Error toggling driver form:", error);
+      // Revert local state if Firebase fails
+      setIsDriverFormOpen(!newState);
+      setAlertMessage("Ralat: Gagal menukar status. Pastikan Firestore Rules membenarkan 'write' ke koleksi 'app_settings'. \n 错误：无法更改状态，请检查数据库权限。");
     }
   };
 
@@ -1547,7 +1586,7 @@ export default function App() {
                  </div>
                  <div className="flex flex-wrap gap-3 w-full md:w-auto">
                    <button 
-                      onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
+                      onClick={handleToggleDriverForm} 
                       className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm flex items-center ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}
                     >
                       {isDriverFormOpen ? 'Tutup Pendaftaran (Close)' : 'Buka Pendaftaran (Open)'}
@@ -1670,8 +1709,8 @@ export default function App() {
                             </div>
                           </div>
                           <div className="text-xs font-semibold text-gray-500 flex justify-between w-full items-end mt-2">
-                             <span>{stat.submitted} / {stat.total} Pelajar</span>
-                             {isComplete && <CheckCircle2 size={16} className="text-green-500" />}
+                              <span>{stat.submitted} / {stat.total} Pelajar</span>
+                              {isComplete && <CheckCircle2 size={16} className="text-green-500" />}
                           </div>
                         </div>
 

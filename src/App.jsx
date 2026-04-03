@@ -1,21 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3, Phone, IdCard } from 'lucide-react';
-import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 // 引入真实数据库
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
-
-// --- UTILITY: CACHE KEYS (V3 BUSTER) ---
-// 强制刷新旧缓存，解决白屏崩溃问题
-const CACHE_KEYS = {
-  DRIVERS: 'sjkc_drivers_cache_v3',
-  DRIVERS_TIME: 'sjkc_drivers_time_v3',
-  SUBS: 'sjkc_subs_cache_v3',
-  SUBS_TIME: 'sjkc_subs_time_v3',
-  STUDENTS: 'sjkc_students_cache_v3',
-  STUDENTS_TIME: 'sjkc_students_time_v3'
-};
 
 // --- UTILITY: SAFE STORAGE ---
 const safeSetStorage = (key, data) => {
@@ -188,6 +177,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               handleChange('kelas', ''); 
               handleChange('name', ''); 
               
+              // Auto-fill session based on year
               if (['1', '2', '3'].includes(selectedYear)) {
                 handleChange('session', 'afternoon');
               } else if (['4', '5', '6'].includes(selectedYear)) {
@@ -354,7 +344,7 @@ export default function App() {
   const [adminDriverSearch, setAdminDriverSearch] = useState('');
   const [expandedClass, setExpandedClass] = useState(null);
 
-  // Form states
+  // Form states - isDriverFormOpen is now LOCAL ONLY to ensure stability
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [numKids, setNumKids] = useState(1);
@@ -389,19 +379,21 @@ export default function App() {
   const fetchDriversList = async (force = false) => {
     try {
       if (!force) {
-        const parsed = safeGetStorage(CACHE_KEYS.DRIVERS);
-        const cacheTime = localStorage.getItem(CACHE_KEYS.DRIVERS_TIME);
+        const parsed = safeGetStorage('sjkc_drivers_list_v4');
+        const cacheTime = localStorage.getItem('sjkc_drivers_time_v4');
         if (parsed && Array.isArray(parsed) && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
-          setDriversList(parsed);
-          return;
+          try {
+            setDriversList(parsed);
+            return;
+          } catch(e) { /* ignore cache parse error */ }
         }
       }
       const qSnap = await getDocs(collection(db, "drivers"));
       const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => String(a.nickname || '').localeCompare(String(b.nickname || '')));
       setDriversList(list);
-      safeSetStorage(CACHE_KEYS.DRIVERS, list);
-      localStorage.setItem(CACHE_KEYS.DRIVERS_TIME, Date.now().toString());
+      safeSetStorage('sjkc_drivers_list_v4', list);
+      localStorage.setItem('sjkc_drivers_time_v4', Date.now().toString());
     } catch (err) {
       console.error("Error fetching drivers from DB:", err);
     }
@@ -411,21 +403,21 @@ export default function App() {
     setIsFetchingAdmin(true);
     try {
       if (!force) {
-        const parsed = safeGetStorage(CACHE_KEYS.SUBS);
-        const cacheTime = localStorage.getItem(CACHE_KEYS.SUBS_TIME);
+        const parsed = safeGetStorage('sjkc_subs_list_v4');
+        const cacheTime = localStorage.getItem('sjkc_subs_time_v4');
         if (parsed && Array.isArray(parsed) && cacheTime && Date.now() - parseInt(cacheTime) < 300000) {
-          setSubmissions(parsed);
-          setIsFetchingAdmin(false);
-          return; 
+          try {
+            setSubmissions(parsed);
+            setIsFetchingAdmin(false);
+            return; 
+          } catch(e) { /* ignore cache parse error */ }
         }
       }
 
       const querySnapshot = await getDocs(collection(db, "transport_submissions"));
       const subs = [];
       querySnapshot.forEach((doc) => {
-        if (doc.id !== 'system_settings') {
-          subs.push({ id: doc.id, ...doc.data() });
-        }
+        subs.push({ id: doc.id, ...doc.data() });
       });
       
       subs.sort((a, b) => {
@@ -439,8 +431,8 @@ export default function App() {
       });
       
       setSubmissions(subs);
-      safeSetStorage(CACHE_KEYS.SUBS, subs);
-      localStorage.setItem(CACHE_KEYS.SUBS_TIME, Date.now().toString());
+      safeSetStorage('sjkc_subs_list_v4', subs);
+      localStorage.setItem('sjkc_subs_time_v4', Date.now().toString());
     } catch (error) {
       console.error("Error fetching submissions:", error);
     } finally {
@@ -454,16 +446,6 @@ export default function App() {
       
       try {
         await signInAnonymously(auth);
-        
-        try {
-          const settingsSnap = await getDoc(doc(db, "transport_submissions", "system_settings"));
-          if (settingsSnap.exists() && settingsSnap.data()) {
-            setIsDriverFormOpen(settingsSnap.data().isDriverFormOpen !== false);
-          }
-        } catch(e) {
-          console.error("Error fetching settings:", e);
-        }
-
         await fetchDriversList(); 
         await fetchSubmissions(); 
       } catch (authErr) {
@@ -478,16 +460,19 @@ export default function App() {
       }
 
       try {
-        const parsed = safeGetStorage(CACHE_KEYS.STUDENTS);
-        const cachedTime = localStorage.getItem(CACHE_KEYS.STUDENTS_TIME);
+        const parsed = safeGetStorage('sjkc_students_list_v4');
+        const cachedTime = localStorage.getItem('sjkc_students_time_v4');
         
         if (parsed && typeof parsed === 'object' && parsed.tempClasses && parsed.tempStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
-           setAvailableClasses(parsed.tempClasses);
-           setStudentsDict(parsed.tempStudents);
-           setIsLoadingStudents(false);
-           return; 
+           try {
+             setAvailableClasses(parsed.tempClasses);
+             setStudentsDict(parsed.tempStudents);
+             setIsLoadingStudents(false);
+             return; 
+           } catch(e) { /* ignore cache parse error */ }
         }
 
+        await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
 
@@ -518,8 +503,8 @@ export default function App() {
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
 
-          safeSetStorage(CACHE_KEYS.STUDENTS, { tempClasses, tempStudents });
-          localStorage.setItem(CACHE_KEYS.STUDENTS_TIME, Date.now().toString());
+          safeSetStorage('sjkc_students_list_v4', { tempClasses, tempStudents });
+          localStorage.setItem('sjkc_students_time_v4', Date.now().toString());
         }
       } catch (error) {
         console.error("Error fetching from Kehadiran DB:", error);
@@ -610,9 +595,9 @@ export default function App() {
       
       const newSub = { id: docRef.id, parent: parentInfo, children: currentChildren, createdAt: { seconds: Date.now() / 1000 } };
       const currentSubs = Array.isArray(submissions) ? submissions : [];
-      const updatedSubs = [newSub, ...currentSubs].filter(s => s && s.id !== 'system_settings');
+      const updatedSubs = [newSub, ...currentSubs];
       setSubmissions(updatedSubs);
-      safeSetStorage(CACHE_KEYS.SUBS, updatedSubs);
+      safeSetStorage('sjkc_subs_list_v4', updatedSubs);
 
       setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });
@@ -727,26 +712,15 @@ export default function App() {
     }
   };
 
-  const handleToggleForm = async () => {
-    const newVal = !isDriverFormOpen;
-    setIsDriverFormOpen(newVal);
-    try {
-      await setDoc(doc(db, "transport_submissions", "system_settings"), {
-        isDriverFormOpen: newVal
-      }, { merge: true });
-    } catch (e) {
-      console.error("Error saving setting", e);
-      setAlertMessage("Gagal menyimpan tetapan. Sila semak Firestore Rules (allow update). \n 保存设置失败，请检查数据库 Update 权限。");
-      setIsDriverFormOpen(!newVal); // Revert state if failed
-    }
+  const handleToggleForm = () => {
+    // 回滚为纯本地控制，确保 100% 稳定无白屏
+    setIsDriverFormOpen(!isDriverFormOpen);
   };
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    let correctPassword = '';
-    try { correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''; } catch(err) {}
-    
-    if (adminPwd === correctPassword && correctPassword !== '') {
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    if (adminPwd === correctPassword && correctPassword) {
       setIsAdmin(true);
       setView('admin');
       setAdminTab('submissions'); 
@@ -800,7 +774,7 @@ export default function App() {
   const safeDrivers = Array.isArray(driversList) ? driversList : [];
 
   const filteredSubmissions = safeSubmissions.filter(sub => {
-    if(!sub || sub.id === 'system_settings') return false; 
+    if(!sub) return false; 
     const q = String(searchQuery || '').toLowerCase();
     const matchesQuery = !q || 
       String(sub.parent?.name || '').toLowerCase().includes(q) || 
@@ -834,7 +808,7 @@ export default function App() {
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
     safeSubmissions.forEach(sub => {
-      if (!sub || sub.id === 'system_settings') return; 
+      if (!sub) return; 
       getChildren(sub).forEach(c => {
         if (c && c.year && c.kelas && c.name) {
           submittedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);

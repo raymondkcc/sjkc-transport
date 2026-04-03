@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3, Phone, IdCard } from 'lucide-react';
-import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
-// 引入真实数据库（完全基于您的生产环境配置）
+// 引入真实数据库
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- FORMATTER FUNCTIONS ---
 const formatIC = (val) => {
-  let cleaned = val.replace(/\D/g, ''); // 只保留数字
-  if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); // 限制最多 12 位
+  let cleaned = val.replace(/\D/g, ''); 
+  if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); 
   if (cleaned.length > 8) {
-    return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; // 格式化为 123456-12-3456
+    return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; 
   } else if (cleaned.length > 6) {
     return `${cleaned.slice(0, 6)}-${cleaned.slice(6)}`;
   }
@@ -35,17 +35,14 @@ const formatPlate = (val) => {
   return cleaned;
 };
 
-// --- TRANSCRIBED EXCEL DRIVERS DATA (Pre-formatted & Merged) ---
+// --- TRANSCRIBED EXCEL DRIVERS DATA ---
 const excelDrivers = [
-  // Gate A3 (Merged Duplicates)
   { nickname: "Uncle Ong", plates: ["WHP 8890"], gate: "A3", phones: ["012 6569825"], fullName: "ONG SEE KIM" },
   { nickname: "Aunty Kuan", plates: ["WSW 6076"], gate: "A3", phones: ["012 3913357"], fullName: "YAP SIEW KEAN" },
   { nickname: "Emily", plates: ["VHV 9616", "WA 2834Y", "WWF 9616"], gate: "A3", phones: ["016 8101372"], fullName: "YEONG LAI KIN" },
   { nickname: "Uncle Sam", plates: ["VEF 8208"], gate: "A3", phones: ["016 2570708"], fullName: "LIM TEIN SENG" },
   { nickname: "Aunty Sanny", plates: ["BLM 8286", "WTK 4284", "WUF 9866", "WXR 1353", "BJU 2930"], gate: "A3", phones: ["017 2899262"], fullName: "TANG YIN LOOT" },
   { nickname: "Uncle Chua", plates: ["WPE 9682"], gate: "A3", phones: ["019 2299910"], fullName: "CHUA YOON KIONG" },
-  
-  // Gate B
   { nickname: "Jasmin Ngian", plates: ["WGU 8795"], gate: "B", phones: ["016 2736002"], fullName: "Ngian Geok Lan" },
   { nickname: "Auntie 小云", plates: ["BNW 2263"], gate: "B", phones: ["016 2256631"], fullName: "Lee Siew Wan" },
   { nickname: "Auntie Amy", plates: ["W 8087Q"], gate: "B", phones: ["012 2342312"], fullName: "Koo Hian Wah" },
@@ -80,7 +77,6 @@ const excelDrivers = [
 
 const DisclaimerPopup = ({ onAccept }) => {
   const [dontShow, setDontShow] = useState(false);
-
   const handleAccept = () => {
     if (dontShow) localStorage.setItem('hideTransportDisclaimer', 'true');
     onAccept();
@@ -94,10 +90,10 @@ const DisclaimerPopup = ({ onAccept }) => {
         </div>
         <h2 className="text-2xl font-extrabold mb-5 text-center text-gray-900 tracking-tight">Makluman / 通知</h2>
         <div className="space-y-4 mb-8 bg-gray-50/80 p-5 rounded-2xl border border-gray-100">
-          <p className="text-sm text-gray-700 text-justify leading-relaxed">
+          <p className="text-sm text-gray-700 text-justify leading-relaxed font-medium">
             <span className="font-bold text-blue-800">BM:</span> Pihak sekolah perlu mengumpul data ini demi keselamatan semua pelajar dan untuk tujuan rekod rasmi pengangkutan. Data anda akan disimpan dengan selamat.
           </p>
-          <p className="text-sm text-gray-700 text-justify leading-relaxed border-t border-gray-200 pt-4">
+          <p className="text-sm text-gray-700 text-justify leading-relaxed border-t border-gray-200 pt-4 font-medium">
             <span className="font-bold text-blue-800">中文:</span> 为了所有学生的安全以及官方交通记录的需要，校方需收集此数据。您的数据将被安全妥善保管。
           </p>
         </div>
@@ -117,6 +113,8 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
   const handleChange = (field, value) => {
     onChange(index, field, value);
   };
+
+  const getDriverLabel = (d) => `${d.nickname} (${(d.plates || [d.plate]).filter(Boolean).join(' / ')})`;
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 mb-6 relative overflow-hidden group">
@@ -184,7 +182,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500">Auto</span>
         </label>
         <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 font-bold outline-none cursor-not-allowed opacity-80" value={data.session} disabled={true}>
-          <option value="">- Automatik mengikut Tahun -</option>
+          <option value="">- Automatik -</option>
           <option value="morning">Pagi / 上午班</option>
           <option value="afternoon">Petang / 下午班</option>
         </select>
@@ -200,9 +198,9 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <label className="block text-xs font-bold mb-1.5 text-green-700 uppercase tracking-wider">Gate / 校门</label>
           <select className="w-full p-3 border border-green-200 rounded-xl bg-white hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 cursor-pointer text-green-900" value={data.arriveGate} onChange={(e) => handleChange('arriveGate', e.target.value)}>
             <option value="">Pilih / 选择</option>
-            <option value="A/A1">Gate A / A1 (Sendiri/自己载送)</option>
-            <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
-            <option value="A3">Gate A3 (Transporter / 司机)</option>
+            <option value="A/A1">Gate A / A1 (Sendiri)</option>
+            <option value="A3 (Parents)">Gate A3 (Parents)</option>
+            <option value="A3">Gate A3 (Transporter)</option>
             <option value="B">Gate B</option>
           </select>
         </div>
@@ -212,12 +210,8 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
               {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => {
-                const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
-                return (
-                  <option key={driver.id || i} value={label}>
-                    {label}
-                  </option>
-                );
+                const label = getDriverLabel(driver);
+                return <option key={driver.id || i} value={label}>{label}</option>;
               })}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
@@ -238,9 +232,9 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <label className="block text-xs font-bold mb-1.5 text-orange-700 uppercase tracking-wider">Gate / 校门</label>
           <select className="w-full p-3 border border-orange-200 rounded-xl bg-white hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 cursor-pointer text-orange-900" value={data.leaveGate} onChange={(e) => handleChange('leaveGate', e.target.value)}>
              <option value="">Pilih / 选择</option>
-            <option value="A/A1">Gate A/A1 (Sendiri/自己载送)</option>
-            <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
-            <option value="A3">Gate A3 (Transporter / 司机)</option>
+            <option value="A/A1">Gate A/A1 (Sendiri)</option>
+            <option value="A3 (Parents)">Gate A3 (Parents)</option>
+            <option value="A3">Gate A3 (Transporter)</option>
             <option value="B">Gate B</option>
           </select>
         </div>
@@ -269,12 +263,8 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
                 <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
                   {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => {
-                    const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
-                    return (
-                      <option key={driver.id || i} value={label}>
-                        {label}
-                      </option>
-                    );
+                    const label = getDriverLabel(driver);
+                    return <option key={driver.id || i} value={label}>{label}</option>;
                   })}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
@@ -295,144 +285,120 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
   );
 };
 
-// --- MAIN APP COMPONENT ---
+// --- MAIN APP ---
 
 export default function App() {
   const [view, setView] = useState('home'); 
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [user, setUser] = useState(null);
   
-  // Drivers State (Manageable in Admin)
   const [driversList, setDriversList] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
 
-  // Admin State
+  // Admin states
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress' | 'drivers'
+  const [adminTab, setAdminTab] = useState('submissions');
+  const [adminDriverSearch, setAdminDriverSearch] = useState('');
   const [expandedClass, setExpandedClass] = useState(null);
-  const [adminDriverSearch, setAdminDriverSearch] = useState(''); // NEW
 
+  // Form states
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterDriver, setFilterDriver] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [numKids, setNumKids] = useState(1);
+  const [parentInfo, setParentInfo] = useState({ name: '', ic: '', phone: '', relation: '', address: '' });
+  const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
+  const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
+
+  // Firebase loading states
+  const [availableClasses, setAvailableClasses] = useState({});
+  const [studentsDict, setStudentsDict] = useState({});
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
-  const [isImporting, setIsImporting] = useState(false); 
-  
-  // Public Driver List State
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Edit / Delete states
+  const [editingDriver, setEditingDriver] = useState(null);
+  const [editingSub, setEditingSub] = useState(null);
+  const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
+  const [deleteDriverId, setDeleteDriverId] = useState(null);
+
+  // Public Filter state
   const [publicGateFilter, setPublicGateFilter] = useState('');
   const [publicSearchQuery, setPublicSearchQuery] = useState('');
   const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
 
-  // Modals State (Delete & Edit)
-  const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
-  const [deleteDriverId, setDeleteDriverId] = useState(null);
-  const [editingDriver, setEditingDriver] = useState(null);
-  const [editingSub, setEditingSub] = useState(null);
-
-  // Form State
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [numKids, setNumKids] = useState(1);
-  const [parentInfo, setParentInfo] = useState({ name: '', ic: '', phone: '', relation: '', address: '' });
-  
-  const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
-  const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
-
-  // Driver Registration Form State
-  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
-
-  // Firebase Fetching States
-  const [availableClasses, setAvailableClasses] = useState({});
-  const [studentsDict, setStudentsDict] = useState({});
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
-
-  // Configure Chrome Tab Header
   useEffect(() => {
     document.title = "SJKC Sin Ming Transport System";
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
   }, []);
 
-  // Function to fetch drivers from DB (with LocalStorage Cache!)
-  const fetchDriversList = async (forceRefresh = false) => {
-    try {
-      const DRIVER_CACHE_KEY = 'sjkc_drivers_cache';
-      const DRIVER_CACHE_TIME = 'sjkc_drivers_cache_time';
-      
-      if (!forceRefresh) {
-        const cached = localStorage.getItem(DRIVER_CACHE_KEY);
-        const cacheTime = localStorage.getItem(DRIVER_CACHE_TIME);
-        // 缓存有效时间：1 小时 (1 hour)
-        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 60) {
-          setDriversList(JSON.parse(cached));
-          return; // 使用缓存，停止向 Firebase 发送请求，节省额度！
-        }
+  const fetchDriversList = async (force = false) => {
+    if (!force) {
+      const cached = localStorage.getItem('sjkc_drivers_cache');
+      const time = localStorage.getItem('sjkc_drivers_cache_time');
+      if (cached && time && Date.now() - parseInt(time) < 3600000) {
+        setDriversList(JSON.parse(cached));
+        return;
       }
-
-      const qSnap = await getDocs(collection(db, "drivers"));
-      const fetchedDrivers = [];
-      qSnap.forEach(doc => {
-        fetchedDrivers.push({ id: doc.id, ...doc.data() });
-      });
-      fetchedDrivers.sort((a, b) => a.nickname.localeCompare(b.nickname));
-      setDriversList(fetchedDrivers);
-      
-      // 更新缓存
-      localStorage.setItem(DRIVER_CACHE_KEY, JSON.stringify(fetchedDrivers));
-      localStorage.setItem(DRIVER_CACHE_TIME, Date.now().toString());
-
-    } catch (err) {
-      console.error("Error fetching drivers from DB:", err);
     }
+    const qSnap = await getDocs(collection(db, "drivers"));
+    const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    list.sort((a, b) => a.nickname.localeCompare(b.nickname));
+    setDriversList(list);
+    localStorage.setItem('sjkc_drivers_cache', JSON.stringify(list));
+    localStorage.setItem('sjkc_drivers_cache_time', Date.now().toString());
   };
 
-  // 2. Fetch Submissions Logic (Global for duplicate checking)
-  const fetchSubmissions = async (forceRefresh = false) => {
+  const fetchSubmissions = async (force = false) => {
     setIsFetchingAdmin(true);
-    try {
-      const SUB_CACHE_KEY = 'sjkc_subs_cache';
-      const SUB_CACHE_TIME = 'sjkc_subs_cache_time';
-      
-      if (!forceRefresh) {
-        const cached = localStorage.getItem(SUB_CACHE_KEY);
-        const cacheTime = localStorage.getItem(SUB_CACHE_TIME);
-        // 缓存有效时间：5 分钟 (5 minutes for public visitors to save quota)
-        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 5) {
-          setSubmissions(JSON.parse(cached));
-          setIsFetchingAdmin(false);
-          return; 
-        }
+    if (!force) {
+      const cached = localStorage.getItem('sjkc_subs_cache');
+      const time = localStorage.getItem('sjkc_subs_cache_time');
+      if (cached && time && Date.now() - parseInt(time) < 300000) {
+        setSubmissions(JSON.parse(cached));
+        setIsFetchingAdmin(false);
+        return;
       }
-
-      const querySnapshot = await getDocs(collection(db, "transport_submissions"));
-      const subs = [];
-      querySnapshot.forEach((doc) => {
-        subs.push({ id: doc.id, ...doc.data() });
-      });
-      subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-      setSubmissions(subs);
-      
-      localStorage.setItem(SUB_CACHE_KEY, JSON.stringify(subs));
-      localStorage.setItem(SUB_CACHE_TIME, Date.now().toString());
-    } catch (error) {
-      console.error("Error fetching submissions:", error);
-    } finally {
-      setIsFetchingAdmin(false);
     }
+    const querySnapshot = await getDocs(collection(db, "transport_submissions"));
+    const subs = [];
+    querySnapshot.forEach((doc) => {
+      // Exclude settings document from general list
+      if (doc.id !== 'system_settings') {
+        subs.push({ id: doc.id, ...doc.data() });
+      }
+    });
+    subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+    setSubmissions(subs);
+    localStorage.setItem('sjkc_subs_cache', JSON.stringify(subs));
+    localStorage.setItem('sjkc_subs_cache_time', Date.now().toString());
+    setIsFetchingAdmin(false);
   };
 
-  // 1. Initialization (Auth + Fetching data)
   useEffect(() => {
-    if (!localStorage.getItem('hideTransportDisclaimer')) {
-      setShowDisclaimer(true);
-    }
-
-    const initDatabasesAndFetch = async () => {
-      setIsLoadingStudents(true);
+    const init = async () => {
+      if (!localStorage.getItem('hideTransportDisclaimer')) setShowDisclaimer(true);
+      
       try {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
-        await fetchDriversList(); // 会优先使用缓存
-        await fetchSubmissions(); // Fetch submissions to prevent duplicates (uses 5 min cache)
+        
+        // Fetch System Settings
+        try {
+          const settingsSnap = await getDoc(doc(db, "transport_submissions", "system_settings"));
+          if (settingsSnap.exists()) {
+            setIsDriverFormOpen(settingsSnap.data().isDriverFormOpen !== false);
+          }
+        } catch(e) {
+          console.error("Error fetching settings:", e);
+        }
+
+        await fetchDriversList(); 
+        await fetchSubmissions(); 
       } catch (authErr) {
         console.error("Transport DB Auth Error:", authErr);
       }
@@ -447,8 +413,6 @@ export default function App() {
       try {
         const STUDENT_CACHE_KEY = 'sjkc_students_cache';
         const STUDENT_CACHE_TIME = 'sjkc_students_cache_time';
-
-        // 检查学生名单的本地缓存（缓存 24 小时，极大节省 Firebase Reads 额度）
         const cachedStudents = localStorage.getItem(STUDENT_CACHE_KEY);
         const cachedTime = localStorage.getItem(STUDENT_CACHE_TIME);
         if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
@@ -456,10 +420,9 @@ export default function App() {
            setAvailableClasses(tempClasses);
            setStudentsDict(tempStudents);
            setIsLoadingStudents(false);
-           return; // 命中缓存，停止向下执行，不调用 Firebase
+           return; 
         }
 
-        // 如果没有缓存，则连接 Kehadiran 数据库读取
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
@@ -491,7 +454,6 @@ export default function App() {
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
 
-          // 写入本地缓存，留待下次使用
           localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify({ tempClasses, tempStudents }));
           localStorage.setItem(STUDENT_CACHE_TIME, Date.now().toString());
         }
@@ -501,23 +463,21 @@ export default function App() {
         setIsLoadingStudents(false);
       }
     };
-    initDatabasesAndFetch();
+    init();
   }, []);
 
   useEffect(() => {
     if (view === 'admin' && isAdmin) {
-      fetchSubmissions(true); // Admin 强制刷新，跳过缓存
-      fetchDriversList(true); // Admin 强制刷新司机列表
+      fetchSubmissions(true); 
+      fetchDriversList(true); 
     }
   }, [view, isAdmin]);
 
-  // Handle Importing the Excel Data
   const handleImportExcelDrivers = async () => {
     if (driversList.length > 0) {
       setAlertMessage("Operasi gagal. Data pemandu telah pun diimport / wujud. \n 操作失败，数据已被导入或已存在。");
       return;
     }
-
     if(!window.confirm("Adakah anda pasti mahu mengimport 40 orang pemandu? Pastikan pangkalan data 'drivers' kosong untuk mengelakkan pertindihan.\n\n您确定要导入40名司机吗？请确保数据库是空的，以免重复。")) {
       return;
     }
@@ -535,7 +495,7 @@ export default function App() {
         });
       }
       setAlertMessage("Semua 40 Pemandu telah berjaya diimport! \n 40位司机已成功导入！");
-      await fetchDriversList(true); // 强制刷新
+      await fetchDriversList(true); 
     } catch (err) {
       console.error("Error importing drivers:", err);
       setAlertMessage("Ralat semasa import. Sila semak Firestore Rules (memerlukan kebenaran 'create').\n 导入失败，请检查规则是否允许 'create'。");
@@ -544,7 +504,6 @@ export default function App() {
     }
   };
 
-  // Form Handlers
   const handleNumKidsChange = (n) => {
     setNumKids(n);
     setChildrenInfo(prev => {
@@ -582,7 +541,6 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       
-      // Update local submissions array immediately to block duplicate entry
       const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo };
       const updatedSubs = [newSub, ...submissions];
       setSubmissions(updatedSubs);
@@ -601,7 +559,6 @@ export default function App() {
     }
   };
 
-  // Driver Submission Dynamic Arrays Handlers
   const handleUpdateDriverPhones = (index, val) => {
     const newArr = [...driverInfo.phones];
     newArr[index] = formatPhone(val);
@@ -618,7 +575,6 @@ export default function App() {
   const handleAddDriverPlate = () => setDriverInfo({...driverInfo, plates: [...driverInfo.plates, '']});
   const handleRemoveDriverPlate = (index) => setDriverInfo({...driverInfo, plates: driverInfo.plates.filter((_, i) => i !== index)});
 
-  // Driver Submit Handler
   const handleDriverSubmit = async () => {
     const cleanedPhones = driverInfo.phones.filter(p => p.trim() !== '');
     const cleanedPlates = driverInfo.plates.filter(p => p.trim() !== '');
@@ -655,7 +611,7 @@ export default function App() {
       });
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
       setDriverInfo({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
-      await fetchDriversList(true); // 新注册，强制刷新缓存
+      await fetchDriversList(true); 
       handleBack();
     } catch (error) {
       console.error("Error saving driver: ", error);
@@ -665,7 +621,6 @@ export default function App() {
     }
   };
 
-  // Editing Handlers for Admin
   const handleSaveDriverEdit = async () => {
     try {
       const cleanedPhones = editingDriver.phones.filter(p => p.trim() !== '');
@@ -679,7 +634,7 @@ export default function App() {
       });
       setAlertMessage("Data pemandu berjaya dikemas kini! \n 司机资料更新成功！");
       setEditingDriver(null);
-      await fetchDriversList(true); // 修改了数据，强制刷新缓存
+      await fetchDriversList(true); 
     } catch(e) {
       console.error("Error updating driver: ", e);
       setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
@@ -701,14 +656,26 @@ export default function App() {
     }
   };
 
-  // Admin Login Handler
+  const handleToggleForm = async () => {
+    const newVal = !isDriverFormOpen;
+    setIsDriverFormOpen(newVal);
+    try {
+      await setDoc(doc(db, "transport_submissions", "system_settings"), {
+        isDriverFormOpen: newVal
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error saving setting", e);
+      setAlertMessage("Gagal menyimpan tetapan. / 保存设置失败。");
+    }
+  };
+
   const handleAdminLogin = (e) => {
     e.preventDefault();
     const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     if (adminPwd === correctPassword) {
       setIsAdmin(true);
       setView('admin');
-      setAdminTab('submissions'); // Default tab
+      setAdminTab('submissions'); 
       setAdminModalOpen(false);
       setAdminPwd('');
     } else {
@@ -734,7 +701,6 @@ export default function App() {
       await deleteDoc(doc(db, "drivers", deleteDriverId));
       setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
       setDeleteDriverId(null);
-      // 同时更新缓存，以免重新读取到被删除的司机
       await fetchDriversList(true); 
     } catch (error) {
       console.error("Error deleting driver: ", error);
@@ -754,7 +720,6 @@ export default function App() {
     else setView('home');
   };
 
-  // Filter Submissions for Admin View
   const filteredSubmissions = submissions.filter(sub => {
     const q = searchQuery.toLowerCase();
     const matchesQuery = !q || 
@@ -775,7 +740,6 @@ export default function App() {
     return matchesQuery && matchesDriver;
   });
 
-  // Filter Drivers for Admin View
   const filteredAdminDrivers = driversList.filter(d => {
     const q = adminDriverSearch.toLowerCase();
     if (!q) return true;
@@ -786,7 +750,6 @@ export default function App() {
     return matchNickname || matchFullName || matchPlate || matchPhone;
   });
 
-  // --- CALCULATION FOR CLASS PROGRESS & PREVENT DUPLICATES ---
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
     submissions.forEach(sub => {
@@ -826,7 +789,6 @@ export default function App() {
 
   const { classStats: progressStats, submittedStudentsSet } = getProgressStats();
   
-  // Set to avoid selecting same child in different dropdowns of the same form
   const currentSelectedStudentsSet = new Set();
   childrenInfo.forEach(c => {
     if (c.year && c.kelas && c.name) {
@@ -840,7 +802,7 @@ export default function App() {
       
       {/* Alert Modal */}
       {alertMessage && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out text-center">
             <div className="text-lg font-bold mb-8 text-gray-800 whitespace-pre-line leading-relaxed">{alertMessage}</div>
             <button onClick={() => setAlertMessage('')} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-2xl font-bold w-full transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">OK, Faham / 好的</button>
@@ -913,7 +875,7 @@ export default function App() {
 
       {/* Admin: Edit Submission Modal */}
       {editingSub && (
-        <div className="fixed inset0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out custom-scrollbar">
             <h3 className="font-extrabold text-2xl mb-6 text-gray-900 tracking-tight">Edit Rekod / 编辑记录</h3>
             
@@ -1547,7 +1509,7 @@ export default function App() {
                  </div>
                  <div className="flex flex-wrap gap-3 w-full md:w-auto">
                    <button 
-                      onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
+                      onClick={handleToggleForm} 
                       className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm flex items-center ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}
                     >
                       {isDriverFormOpen ? 'Tutup Pendaftaran (Close)' : 'Buka Pendaftaran (Open)'}

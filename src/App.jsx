@@ -150,7 +150,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               }
             }} disabled={isLoadingStudents}>
             <option value="">Pilih / 选择</option>
-            {Object.keys(availableClasses).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
+            {Object.keys(availableClasses || {}).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
           </select>
         </div>
         <div>
@@ -158,7 +158,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
             value={data.kelas} onChange={(e) => { handleChange('kelas', e.target.value); handleChange('name', ''); }} disabled={!data.year || isLoadingStudents}>
             <option value="">Pilih / 选择</option>
-            {data.year && availableClasses[data.year]?.map(c => <option key={c} value={c}>{c}</option>)}
+            {data.year && (availableClasses[data.year] || []).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>
@@ -168,14 +168,14 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
           value={data.name} onChange={(e) => handleChange('name', e.target.value)} disabled={!data.kelas || isLoadingStudents}>
           <option value="">Pilih / 选择</option>
-          {data.kelas && studentsDict[`${data.year}-${data.kelas}`]
-            ?.filter(s => {
+          {data.kelas && (studentsDict[`${data.year}-${data.kelas}`] || [])
+            .filter(s => {
               const key = `${data.year}-${data.kelas}-${s}`;
               const isAlreadySubmitted = submittedStudentsSet.has(key);
               const isSelectedByOtherChild = currentSelectedStudentsSet.has(key) && data.name !== s;
               return !isAlreadySubmitted && !isSelectedByOtherChild;
             })
-            ?.map(s => <option key={s} value={s}>{s}</option>)}
+            .map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
@@ -212,7 +212,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
             <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
-              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => {
+              {(driversList || []).filter(d => d.gate === data.arriveGate).map((driver, i) => {
                 const label = getDriverLabel(driver);
                 return <option key={driver.id || i} value={label}>{label}</option>;
               })}
@@ -265,7 +265,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <>
                 <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
-                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => {
+                  {(driversList || []).filter(d => d.gate === data.leaveGate).map((driver, i) => {
                     const label = getDriverLabel(driver);
                     return <option key={driver.id || i} value={label}>{label}</option>;
                   })}
@@ -346,8 +346,11 @@ export default function App() {
         const cacheTime = localStorage.getItem('sjkc_drivers_cache_time');
         if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
           try {
-            setDriversList(JSON.parse(cached));
-            return;
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) {
+              setDriversList(parsed);
+              return;
+            }
           } catch(e) { /* ignore cache parse error */ }
         }
       }
@@ -370,9 +373,12 @@ export default function App() {
         const cacheTime = localStorage.getItem('sjkc_subs_cache_time');
         if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 300000) {
           try {
-            setSubmissions(JSON.parse(cached));
-            setIsFetchingAdmin(false);
-            return; 
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) {
+              setSubmissions(parsed);
+              setIsFetchingAdmin(false);
+              return; 
+            }
           } catch(e) { /* ignore cache parse error */ }
         }
       }
@@ -385,7 +391,6 @@ export default function App() {
         }
       });
       
-      // Robust sorting to prevent toMillis crash on corrupted/cached createdAt
       subs.sort((a, b) => {
         const getMs = (dateObj) => {
           if (!dateObj) return 0;
@@ -413,7 +418,6 @@ export default function App() {
       try {
         await signInAnonymously(auth);
         
-        // Fetch System Settings
         try {
           const settingsSnap = await getDoc(doc(db, "transport_submissions", "system_settings"));
           if (settingsSnap.exists() && settingsSnap.data()) {
@@ -443,15 +447,16 @@ export default function App() {
         const cachedTime = localStorage.getItem(STUDENT_CACHE_TIME);
         if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
            try {
-             const { tempClasses, tempStudents } = JSON.parse(cachedStudents);
-             setAvailableClasses(tempClasses);
-             setStudentsDict(tempStudents);
-             setIsLoadingStudents(false);
-             return; 
+             const parsed = JSON.parse(cachedStudents);
+             if (parsed && typeof parsed === 'object' && parsed.tempClasses && parsed.tempStudents) {
+               setAvailableClasses(parsed.tempClasses);
+               setStudentsDict(parsed.tempStudents);
+               setIsLoadingStudents(false);
+               return; 
+             }
            } catch(e) { /* ignore cache parse error */ }
         }
 
-        await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
 
@@ -502,7 +507,7 @@ export default function App() {
   }, [view, isAdmin]);
 
   const handleImportExcelDrivers = async () => {
-    if (driversList.length > 0) {
+    if ((driversList || []).length > 0) {
       setAlertMessage("Operasi gagal. Data pemandu telah pun diimport / wujud. \n 操作失败，数据已被导入或已存在。");
       return;
     }
@@ -570,7 +575,7 @@ export default function App() {
       });
       
       const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo, createdAt: { seconds: Date.now() / 1000 } };
-      const updatedSubs = [newSub, ...submissions].filter(s => s.id !== 'system_settings');
+      const updatedSubs = [newSub, ...(submissions || [])].filter(s => s.id !== 'system_settings');
       setSubmissions(updatedSubs);
       localStorage.setItem('sjkc_subs_cache', JSON.stringify(updatedSubs));
 
@@ -604,16 +609,16 @@ export default function App() {
   const handleRemoveDriverPlate = (index) => setDriverInfo({...driverInfo, plates: driverInfo.plates.filter((_, i) => i !== index)});
 
   const handleDriverSubmit = async () => {
-    const cleanedPhones = driverInfo.phones.filter(p => p.trim() !== '');
-    const cleanedPlates = driverInfo.plates.filter(p => p.trim() !== '');
+    const cleanedPhones = (driverInfo.phones || []).filter(p => p.trim() !== '');
+    const cleanedPlates = (driverInfo.plates || []).filter(p => p.trim() !== '');
 
     if (!driverInfo.fullName || !driverInfo.nickname || !driverInfo.gate || cleanedPhones.length === 0 || cleanedPlates.length === 0) {
        setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Telefon & Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，电话与门均为必填）。");
        return;
     }
     
-    const flatPlates = driversList.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
-    const flatPhones = driversList.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
+    const flatPlates = (driversList || []).flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
+    const flatPhones = (driversList || []).flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
 
     const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(String(p).replace(/\s/g, '')));
     if (duplicatePlate) {
@@ -651,8 +656,8 @@ export default function App() {
 
   const handleSaveDriverEdit = async () => {
     try {
-      const cleanedPhones = editingDriver.phones.filter(p => p.trim() !== '');
-      const cleanedPlates = editingDriver.plates.filter(p => p.trim() !== '');
+      const cleanedPhones = (editingDriver.phones || []).filter(p => p.trim() !== '');
+      const cleanedPlates = (editingDriver.plates || []).filter(p => p.trim() !== '');
       await updateDoc(doc(db, "drivers", editingDriver.id), {
         fullName: editingDriver.fullName,
         nickname: editingDriver.nickname,
@@ -700,14 +705,8 @@ export default function App() {
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    let correctPassword = '';
-    try {
-      correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
-    } catch(err) {
-      console.error("Env load error:", err);
-    }
-    
-    if (adminPwd === correctPassword && correctPassword !== '') {
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    if (adminPwd === correctPassword && correctPassword) {
       setIsAdmin(true);
       setView('admin');
       setAdminTab('submissions'); 
@@ -721,7 +720,7 @@ export default function App() {
   const handleDeleteSubmission = async (id) => {
     try {
       await deleteDoc(doc(db, "transport_submissions", id));
-      setSubmissions(prev => prev.filter(s => s.id !== id));
+      setSubmissions(prev => (prev || []).filter(s => s.id !== id));
       setDeleteSubmissionId(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
@@ -734,7 +733,7 @@ export default function App() {
     if (!deleteDriverId) return;
     try {
       await deleteDoc(doc(db, "drivers", deleteDriverId));
-      setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
+      setDriversList(prev => (prev || []).filter(d => d.id !== deleteDriverId));
       setDeleteDriverId(null);
       await fetchDriversList(true); 
     } catch (error) {
@@ -755,7 +754,7 @@ export default function App() {
     else setView('home');
   };
 
-  const filteredSubmissions = submissions.filter(sub => {
+  const filteredSubmissions = (submissions || []).filter(sub => {
     if(sub.id === 'system_settings') return false; // Extra safety guard
     const q = String(searchQuery || '').toLowerCase();
     const matchesQuery = !q || 
@@ -776,7 +775,7 @@ export default function App() {
     return matchesQuery && matchesDriver;
   });
 
-  const filteredAdminDrivers = driversList.filter(d => {
+  const filteredAdminDrivers = (driversList || []).filter(d => {
     const q = String(adminDriverSearch || '').toLowerCase();
     if (!q) return true;
     const matchNickname = String(d.nickname || '').toLowerCase().includes(q);
@@ -788,7 +787,7 @@ export default function App() {
 
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
-    submissions.forEach(sub => {
+    (submissions || []).forEach(sub => {
       if (sub.id === 'system_settings') return; // Extra safety
       (sub.children || []).forEach(c => {
         if (c.year && c.kelas && c.name) {
@@ -798,7 +797,7 @@ export default function App() {
     });
 
     const classStats = [];
-    Object.keys(availableClasses).sort().forEach(year => {
+    Object.keys(availableClasses || {}).sort().forEach(year => {
       (availableClasses[year] || []).forEach(kelas => {
         const classKey = `${year}-${kelas}`;
         const students = studentsDict[classKey] || [];
@@ -827,7 +826,7 @@ export default function App() {
   const { classStats: progressStats, submittedStudentsSet } = getProgressStats();
   
   const currentSelectedStudentsSet = new Set();
-  childrenInfo.forEach(c => {
+  (childrenInfo || []).forEach(c => {
     if (c.year && c.kelas && c.name) {
        currentSelectedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);
     }
@@ -1172,7 +1171,7 @@ export default function App() {
           </div>
 
           <div className="space-y-6">
-            {childrenInfo.map((childData, i) => (
+            {(childrenInfo || []).map((childData, i) => (
               <ChildForm 
                 key={i} index={i} data={childData} onChange={handleChildChange}
                 availableClasses={availableClasses} studentsDict={studentsDict} isLoadingStudents={isLoadingStudents} 
@@ -1219,7 +1218,7 @@ export default function App() {
               {/* Dynamic Phones Input */}
               <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
-                {driverInfo.phones.map((phone, i) => (
+                {(driverInfo.phones || []).map((phone, i) => (
                   <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
                     <input type="tel" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
                     {i > 0 && <button type="button" onClick={() => handleRemoveDriverPhone(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
@@ -1231,7 +1230,7 @@ export default function App() {
               {/* Dynamic Plates Input */}
               <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
-                {driverInfo.plates.map((plate, i) => (
+                {(driverInfo.plates || []).map((plate, i) => (
                   <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
                     <input type="text" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
                     {i > 0 && <button type="button" onClick={() => handleRemoveDriverPlate(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
@@ -1302,7 +1301,7 @@ export default function App() {
               
               {isDriverDropdownOpen && (
                 <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-72 overflow-y-auto custom-scrollbar z-50 overflow-hidden">
-                  {driversList
+                  {(driversList || [])
                     .filter(d => (!publicGateFilter || d.gate === publicGateFilter) && 
                                  (String(d.nickname || '').toLowerCase().includes(publicSearchQuery.toLowerCase()) || 
                                  (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(publicSearchQuery.toLowerCase()))))
@@ -1335,7 +1334,7 @@ export default function App() {
                         </div>
                       </div>
                   ))}
-                  {driversList.filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (String(d.nickname || '').toLowerCase().includes(publicSearchQuery.toLowerCase()) || (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(publicSearchQuery.toLowerCase())))).length === 0 && (
+                  {(driversList || []).filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (String(d.nickname || '').toLowerCase().includes(publicSearchQuery.toLowerCase()) || (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(publicSearchQuery.toLowerCase())))).length === 0 && (
                     <div className="p-5 text-center text-sm font-bold text-gray-400">Tiada padanan / 无匹配结果</div>
                   )}
                 </div>
@@ -1351,7 +1350,7 @@ export default function App() {
                   Gate A3
                 </div>
                 <div className="space-y-4">
-                  {driversList.filter(d => d.gate === 'A3').map((driver, i) => (
+                  {(driversList || []).filter(d => d.gate === 'A3').map((driver, i) => (
                     <div id={`driver-card-${driver.id}`} key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
                       <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
                         <Bus size={28} strokeWidth={1.5} />
@@ -1366,7 +1365,7 @@ export default function App() {
                       </div>
                     </div>
                   ))}
-                  {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
+                  {(driversList || []).filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
                 </div>
               </div>
             )}
@@ -1377,7 +1376,7 @@ export default function App() {
                   Gate B
                 </div>
                 <div className="space-y-4">
-                  {driversList.filter(d => d.gate === 'B').map((driver, i) => (
+                  {(driversList || []).filter(d => d.gate === 'B').map((driver, i) => (
                     <div id={`driver-card-${driver.id}`} key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
                       <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
                         <Bus size={28} strokeWidth={1.5} />
@@ -1392,7 +1391,7 @@ export default function App() {
                       </div>
                     </div>
                   ))}
-                  {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
+                  {(driversList || []).filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
                 </div>
               </div>
             )}
@@ -1449,7 +1448,7 @@ export default function App() {
                   <div className="relative mb-5">
                     <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                       <option value="">Semua Pemandu / 所有司机</option>
-                      {driversList.map((d) => {
+                      {(driversList || []).map((d) => {
                         const label = `${d.nickname} (${(d.plates || [d.plate]).filter(Boolean).join(' / ')})`;
                         return <option key={d.id} value={label}>{label}</option>;
                       })}
@@ -1578,7 +1577,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredAdminDrivers.map(driver => (
+                  {(filteredAdminDrivers || []).map(driver => (
                     <div key={driver.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
                       
                       {/* Top Banner (Gate Color) */}
@@ -1651,7 +1650,7 @@ export default function App() {
                 <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-green-500" /></div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {progressStats.map(stat => {
+                  {(progressStats || []).map(stat => {
                     const percentage = stat.total > 0 ? Math.round((stat.submitted / stat.total) * 100) : 0;
                     const isComplete = percentage === 100 && stat.total > 0;
                     
@@ -1682,7 +1681,7 @@ export default function App() {
                         {/* Expanded Dropdown Content */}
                         {expandedClass === stat.classKey && (
                           <div className="p-4 bg-white max-h-72 overflow-y-auto custom-scrollbar border-t border-green-100">
-                             {stat.students.map((student, sIdx) => {
+                             {(stat.students || []).map((student, sIdx) => {
                                const isSubbed = stat.submittedSet.has(`${stat.year}-${stat.kelas}-${student}`);
                                return (
                                  <div key={sIdx} className={`text-xs font-bold p-3 mb-2 rounded-xl flex justify-between items-center border transition-all ${isSubbed ? 'bg-green-50/50 border-green-200/60 text-green-800 shadow-sm' : 'bg-red-50/50 border-red-200/60 text-red-800'}`}>
@@ -1691,7 +1690,7 @@ export default function App() {
                                  </div>
                                );
                              })}
-                             {stat.students.length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
+                             {(stat.students || []).length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
                           </div>
                         )}
                       </div>

@@ -113,7 +113,7 @@ const DisclaimerPopup = ({ onAccept }) => {
   );
 };
 
-const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLoadingStudents, driversList }) => {
+const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLoadingStudents, driversList, submittedStudentsSet, currentSelectedStudentsSet }) => {
   const handleChange = (field, value) => {
     onChange(index, field, value);
   };
@@ -167,7 +167,14 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
           value={data.name} onChange={(e) => handleChange('name', e.target.value)} disabled={!data.kelas || isLoadingStudents}>
           <option value="">Pilih / 选择</option>
-          {data.kelas && studentsDict[`${data.year}-${data.kelas}`]?.map(s => <option key={s} value={s}>{s}</option>)}
+          {data.kelas && studentsDict[`${data.year}-${data.kelas}`]
+            ?.filter(s => {
+              const key = `${data.year}-${data.kelas}-${s}`;
+              const isAlreadySubmitted = submittedStudentsSet.has(key);
+              const isSelectedByOtherChild = currentSelectedStudentsSet.has(key) && data.name !== s;
+              return !isAlreadySubmitted && !isSelectedByOtherChild;
+            })
+            ?.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
@@ -366,6 +373,41 @@ export default function App() {
     }
   };
 
+  // 2. Fetch Submissions Logic (Global for duplicate checking)
+  const fetchSubmissions = async (forceRefresh = false) => {
+    setIsFetchingAdmin(true);
+    try {
+      const SUB_CACHE_KEY = 'sjkc_subs_cache';
+      const SUB_CACHE_TIME = 'sjkc_subs_cache_time';
+      
+      if (!forceRefresh) {
+        const cached = localStorage.getItem(SUB_CACHE_KEY);
+        const cacheTime = localStorage.getItem(SUB_CACHE_TIME);
+        // 缓存有效时间：5 分钟 (5 minutes for public visitors to save quota)
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 5) {
+          setSubmissions(JSON.parse(cached));
+          setIsFetchingAdmin(false);
+          return; 
+        }
+      }
+
+      const querySnapshot = await getDocs(collection(db, "transport_submissions"));
+      const subs = [];
+      querySnapshot.forEach((doc) => {
+        subs.push({ id: doc.id, ...doc.data() });
+      });
+      subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setSubmissions(subs);
+      
+      localStorage.setItem(SUB_CACHE_KEY, JSON.stringify(subs));
+      localStorage.setItem(SUB_CACHE_TIME, Date.now().toString());
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+    } finally {
+      setIsFetchingAdmin(false);
+    }
+  };
+
   // 1. Initialization (Auth + Fetching data)
   useEffect(() => {
     if (!localStorage.getItem('hideTransportDisclaimer')) {
@@ -378,6 +420,7 @@ export default function App() {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
         await fetchDriversList(); // 会优先使用缓存
+        await fetchSubmissions(); // Fetch submissions to prevent duplicates (uses 5 min cache)
       } catch (authErr) {
         console.error("Transport DB Auth Error:", authErr);
       }
@@ -449,28 +492,10 @@ export default function App() {
     initDatabasesAndFetch();
   }, []);
 
-  // 2. Admin Fetch Submissions Logic
-  const fetchSubmissions = async () => {
-    setIsFetchingAdmin(true);
-    try {
-      const querySnapshot = await getDocs(collection(db, "transport_submissions"));
-      const subs = [];
-      querySnapshot.forEach((doc) => {
-        subs.push({ id: doc.id, ...doc.data() });
-      });
-      subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-      setSubmissions(subs);
-      await fetchDriversList(true); // Admin 视角强制刷新司机数据，不走缓存
-    } catch (error) {
-      console.error("Error fetching submissions:", error);
-    } finally {
-      setIsFetchingAdmin(false);
-    }
-  };
-
   useEffect(() => {
     if (view === 'admin' && isAdmin) {
-      fetchSubmissions();
+      fetchSubmissions(true); // Admin 强制刷新，跳过缓存
+      fetchDriversList(true); // Admin 强制刷新司机列表
     }
   }, [view, isAdmin]);
 
@@ -533,11 +558,18 @@ export default function App() {
     
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "transport_submissions"), {
+      const docRef = await addDoc(collection(db, "transport_submissions"), {
         parent: parentInfo,
         children: childrenInfo,
         createdAt: serverTimestamp()
       });
+      
+      // Update local submissions array immediately to block duplicate entry
+      const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo };
+      const updatedSubs = [newSub, ...submissions];
+      setSubmissions(updatedSubs);
+      localStorage.setItem('sjkc_subs_cache', JSON.stringify(updatedSubs));
+
       setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });
       setNumKids(1);
@@ -644,7 +676,7 @@ export default function App() {
       });
       setAlertMessage("Rekod berjaya dikemas kini! \n 记录更新成功！");
       setEditingSub(null);
-      fetchSubmissions();
+      fetchSubmissions(true);
     } catch(e) {
       console.error("Error updating submission: ", e);
       setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
@@ -721,7 +753,7 @@ export default function App() {
     return matchesQuery && matchesDriver;
   });
 
-  // --- CALCULATION FOR CLASS PROGRESS ---
+  // --- CALCULATION FOR CLASS PROGRESS & PREVENT DUPLICATES ---
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
     submissions.forEach(sub => {
@@ -756,10 +788,18 @@ export default function App() {
       });
     });
 
-    return classStats;
+    return { classStats, submittedStudentsSet };
   };
 
-  const progressStats = getProgressStats();
+  const { classStats: progressStats, submittedStudentsSet } = getProgressStats();
+  
+  // Set to avoid selecting same child in different dropdowns of the same form
+  const currentSelectedStudentsSet = new Set();
+  childrenInfo.forEach(c => {
+    if (c.year && c.kelas && c.name) {
+       currentSelectedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12 overflow-x-hidden">
@@ -1105,6 +1145,8 @@ export default function App() {
                 key={i} index={i} data={childData} onChange={handleChildChange}
                 availableClasses={availableClasses} studentsDict={studentsDict} isLoadingStudents={isLoadingStudents} 
                 driversList={driversList}
+                submittedStudentsSet={submittedStudentsSet}
+                currentSelectedStudentsSet={currentSelectedStudentsSet}
               />
             ))}
           </div>

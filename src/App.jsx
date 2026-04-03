@@ -313,6 +313,11 @@ export default function App() {
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
   const [isImporting, setIsImporting] = useState(false); 
   
+  // Public Driver List State
+  const [publicGateFilter, setPublicGateFilter] = useState('');
+  const [publicSearchQuery, setPublicSearchQuery] = useState('');
+  const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
+
   // Modals State (Delete & Edit)
   const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
   const [deleteDriverId, setDeleteDriverId] = useState(null);
@@ -1096,6 +1101,284 @@ export default function App() {
         </div>
       )}
 
+      {/* --- 2. PARENT DATA COLLECTION FORM --- */}
+      {view === 'parentForm' && (
+        <div className="max-w-xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Borang Ibu Bapa</h2>
+            <p className="text-gray-500 font-bold mt-1 tracking-wide">家长/监护人交通资料收集</p>
+          </div>
+          
+          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 mb-6 relative overflow-hidden transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-blue-400"></div>
+            <h3 className="font-extrabold mb-6 text-xl flex items-center text-gray-800 tracking-tight"><Users size={22} className="mr-2.5 text-blue-500 drop-shadow-sm" /> Maklumat Penjaga / 监护人资料</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh / 全名</label>
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.name} onChange={e => setParentInfo({...parentInfo, name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Kad Pengenalan / 身份证号码</label>
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.ic} onChange={e => setParentInfo({...parentInfo, ic: formatIC(e.target.value)})} />
+              </div>
+              <div className="grid grid-cols-2 gap-5">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
+                  <input type="tel" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Hubungan / 关系</label>
+                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 cursor-pointer" value={parentInfo.relation} onChange={e => setParentInfo({...parentInfo, relation: e.target.value})}>
+                    <option value="">Pilih / 选择</option>
+                    <option value="IbuBapa">IbuBapa / 父母</option>
+                    <option value="Penjaga">Penjaga / 监护人</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Alamat Rumah / 家庭住址</label>
+                <textarea className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" rows="2" value={parentInfo.address} onChange={e => setParentInfo({...parentInfo, address: e.target.value})}></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 mb-6 transition-shadow duration-300">
+            <label className="block font-extrabold mb-2 text-gray-900 text-lg tracking-tight">Jumlah Anak di Sekolah Ini / 本校就读孩子数量</label>
+            <p className="text-xs text-gray-500 mb-5 font-medium tracking-wide">Sila pilih bilangan anak anda / 请选择</p>
+            <select className="w-full p-4 border-2 border-blue-100 rounded-2xl bg-blue-50/50 hover:bg-blue-50 text-blue-900 font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer transition-all duration-300" value={numKids} onChange={(e) => handleNumKidsChange(parseInt(e.target.value))}>
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} Orang / 人</option>)}
+            </select>
+          </div>
+
+          <div className="space-y-6">
+            {childrenInfo.map((childData, i) => (
+              <ChildForm 
+                key={i} index={i} data={childData} onChange={handleChildChange}
+                availableClasses={availableClasses} studentsDict={studentsDict} isLoadingStudents={isLoadingStudents} 
+                driversList={driversList}
+                submittedStudentsSet={submittedStudentsSet}
+                currentSelectedStudentsSet={currentSelectedStudentsSet}
+              />
+            ))}
+          </div>
+
+          <button onClick={handleParentSubmit} disabled={isSubmitting} className="mt-10 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
+            {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Menghantar / 正在提交...</> : <>Hantar / 提交 <ArrowLeft size={22} className="ml-2.5 rotate-180 group-hover:translate-x-1 transition-transform duration-300" /></>}
+          </button>
+        </div>
+      )}
+
+      {/* --- 3. DRIVER REGISTRATION FORM --- */}
+      {view === 'driverForm' && (
+        <div className="max-w-xl mx-auto p-4 pb-24 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
+            <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
+          </div>
+
+          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-green-500 to-emerald-400"></div>
+            
+            <div className="bg-green-50/80 p-5 rounded-2xl mb-7 text-sm text-green-800 border border-green-100 font-medium leading-relaxed shadow-inner">
+              Sila isi maklumat terkini anda untuk rujukan pihak sekolah and kemudahan ibu bapa. / 请填写您的最新资料，以便校方记录及方便家长查阅。
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh Pemandu / 司机全名 (IC)</label>
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
+                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
+                <p className="text-xs text-gray-400 mt-2 font-medium">Nama ini akan dipaparkan dalam senarai awam.</p>
+              </div>
+
+              {/* Dynamic Phones Input */}
+              <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
+                {driverInfo.phones.map((phone, i) => (
+                  <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
+                    <input type="tel" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
+                    {i > 0 && <button type="button" onClick={() => handleRemoveDriverPhone(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddDriverPhone} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Phone</button>
+              </div>
+
+              {/* Dynamic Plates Input */}
+              <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
+                {driverInfo.plates.map((plate, i) => (
+                  <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
+                    <input type="text" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
+                    {i > 0 && <button type="button" onClick={() => handleRemoveDriverPlate(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddDriverPlate} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Plate</button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  {['A3', 'B'].map(gate => (
+                    <label key={gate} className="border-2 border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 hover:border-green-200 focus-within:ring-4 ring-green-500/20 transition-all duration-300 has-[:checked]:bg-green-50/80 has-[:checked]:border-green-500 has-[:checked]:shadow-sm hover:-translate-y-0.5 active:scale-95">
+                      <input type="radio" name="driverGate" value={gate} checked={driverInfo.gate === gate} onChange={e => setDriverInfo({...driverInfo, gate: e.target.value})} className="sr-only" />
+                      <span className="font-bold text-gray-500 tracking-wide mb-1">Gate</span>
+                      <span className="text-2xl font-black text-gray-900">{gate}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={handleDriverSubmit} disabled={isSubmitting} className="mt-10 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
+              {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Sedang Menyimpan / 正在保存...</> : <>Daftar / 提交注册 <PlusCircle size={22} className="ml-2.5 group-hover:rotate-90 transition-transform duration-500" /></>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
+      {view === 'driverList' && (
+        <div className="max-w-5xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Senarai Pemandu</h2>
+            <p className="text-gray-500 font-bold mt-1 tracking-wide">载送方公共列表</p>
+          </div>
+          
+          {/* NEW FILTER BAR */}
+          <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 mb-8 z-20 relative max-w-2xl mx-auto">
+            {/* Gate Filter */}
+            <select 
+              className="w-full md:w-1/3 p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none font-bold text-gray-700 transition-all cursor-pointer"
+              value={publicGateFilter}
+              onChange={(e) => setPublicGateFilter(e.target.value)}
+            >
+              <option value="">Semua Gate / 所有校门</option>
+              <option value="A3">Gate A3</option>
+              <option value="B">Gate B</option>
+            </select>
+
+            {/* Driver Jump-to Dropdown */}
+            <div className="relative w-full md:w-2/3">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search size={20} className="text-gray-400" />
+              </div>
+              <input 
+                type="text" 
+                placeholder="Cari atau pilih pemandu..." 
+                className="w-full pl-12 p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all font-medium text-gray-800"
+                value={publicSearchQuery}
+                onChange={(e) => {
+                  setPublicSearchQuery(e.target.value);
+                  setIsDriverDropdownOpen(true);
+                }}
+                onFocus={() => setIsDriverDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setIsDriverDropdownOpen(false), 200)}
+              />
+              
+              {isDriverDropdownOpen && (
+                <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-72 overflow-y-auto custom-scrollbar z-50 overflow-hidden">
+                  {driversList
+                    .filter(d => (!publicGateFilter || d.gate === publicGateFilter) && 
+                                 (d.nickname.toLowerCase().includes(publicSearchQuery.toLowerCase()) || 
+                                 (d.plates || [d.plate]).some(p => p.toLowerCase().includes(publicSearchQuery.toLowerCase()))))
+                    .map(d => (
+                      <div 
+                        key={d.id} 
+                        className="p-3.5 hover:bg-purple-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
+                        onClick={() => {
+                          setPublicSearchQuery(''); 
+                          setIsDriverDropdownOpen(false);
+                          if (publicGateFilter && publicGateFilter !== d.gate) {
+                            setPublicGateFilter(d.gate);
+                          }
+                          setTimeout(() => {
+                            const el = document.getElementById(`driver-card-${d.id}`);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              el.classList.add('ring-4', 'ring-purple-500', 'scale-105', 'bg-purple-50/50', 'z-10');
+                              setTimeout(() => el.classList.remove('ring-4', 'ring-purple-500', 'scale-105', 'bg-purple-50/50', 'z-10'), 2000);
+                            }
+                          }, 100);
+                        }}
+                      >
+                        <div className="font-extrabold text-gray-800">{d.nickname}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="bg-gray-100 px-2 py-0.5 rounded-md text-gray-500 font-bold text-[10px] uppercase">Gate {d.gate}</span>
+                          {(d.plates || [d.plate]).filter(Boolean).map((pl, idx) => (
+                            <span key={idx} className="bg-white px-2 py-0.5 rounded-md text-gray-700 font-mono text-[10px] font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
+                          ))}
+                        </div>
+                      </div>
+                  ))}
+                  {driversList.filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (d.nickname.toLowerCase().includes(publicSearchQuery.toLowerCase()) || (d.plates || [d.plate]).some(p => p.toLowerCase().includes(publicSearchQuery.toLowerCase())))).length === 0 && (
+                    <div className="p-5 text-center text-sm font-bold text-gray-400">Tiada padanan / 无匹配结果</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LIST RENDER */}
+          <div className={`grid grid-cols-1 ${publicGateFilter ? 'md:grid-cols-1 max-w-3xl mx-auto' : 'md:grid-cols-2'} gap-8 w-full`}>
+            {(!publicGateFilter || publicGateFilter === 'A3') && (
+              <div className="animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
+                <div className="bg-gradient-to-r from-green-100 to-green-50 text-green-800 font-black text-center py-3.5 rounded-2xl mb-5 shadow-sm border border-green-200/60 uppercase tracking-widest">
+                  Gate A3
+                </div>
+                <div className="space-y-4">
+                  {driversList.filter(d => d.gate === 'A3').map((driver, i) => (
+                    <div id={`driver-card-${driver.id}`} key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
+                      <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                        <Bus size={28} strokeWidth={1.5} />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
+                            <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
+                </div>
+              </div>
+            )}
+
+            {(!publicGateFilter || publicGateFilter === 'B') && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-200">
+                <div className="bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 font-black text-center py-3.5 rounded-2xl mb-5 shadow-sm border border-blue-200/60 uppercase tracking-widest">
+                  Gate B
+                </div>
+                <div className="space-y-4">
+                  {driversList.filter(d => d.gate === 'B').map((driver, i) => (
+                    <div id={`driver-card-${driver.id}`} key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
+                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                        <Bus size={28} strokeWidth={1.5} />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
+                            <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* --- 5. ADMIN VIEW (Protected) --- */}
       {view === 'admin' && (
         <div className="max-w-7xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
@@ -1145,7 +1428,7 @@ export default function App() {
                   <div className="relative mb-5">
                     <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                       <option value="">Semua Pemandu / 所有司机</option>
-                      {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).filter(Boolean).join(' / ')})</option>)}
+                      {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).join(' / ')})</option>)}
                     </select>
                   </div>
                   <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">
@@ -1295,7 +1578,9 @@ export default function App() {
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Phone size={10} className="mr-1" /> Telefon</div>
                           <div className="flex flex-col gap-1">
                             {(driver.phones || [driver.phone]).filter(Boolean).map((ph, idx) => (
-                               <div key={idx} className="text-sm font-semibold text-gray-700">{ph}</div>
+                               <a key={idx} href={`tel:${ph.replace(/\s/g, '')}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
+                                 {ph}
+                               </a>
                             ))}
                           </div>
                         </div>

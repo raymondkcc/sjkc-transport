@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3 } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3, Phone, IdCard } from 'lucide-react';
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
@@ -303,7 +303,7 @@ export default function App() {
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress'
+  const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress' | 'drivers'
   const [expandedClass, setExpandedClass] = useState(null);
 
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
@@ -553,6 +553,12 @@ export default function App() {
   const handleParentSubmit = async () => {
     if (!parentInfo.name || !parentInfo.phone) {
       setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga. \n 请至少填写监护人姓名与电话号码。");
+      return;
+    }
+
+    const hasIncompleteChild = childrenInfo.some(c => !c.year || !c.kelas || !c.name || !c.arriveGate || !c.leaveGate);
+    if(hasIncompleteChild) {
+      setAlertMessage("Sila lengkapkan maklumat bagi setiap anak. \n 请完善每个孩子的表格信息。");
       return;
     }
     
@@ -887,9 +893,9 @@ export default function App() {
             <div className="mb-6">
               <h4 className="font-extrabold text-sm text-blue-600 mb-3 uppercase tracking-wider flex items-center"><Users size={16} className="mr-1.5"/>Maklumat Penjaga</h4>
               <div className="grid grid-cols-2 gap-4">
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.name || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} />
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.phone || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: formatPhone(e.target.value)}})} />
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent?.ic || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: formatIC(e.target.value)}})} />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.name || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} placeholder="Nama Penuh" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.phone || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: formatPhone(e.target.value)}})} placeholder="No Telefon" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent?.ic || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: formatIC(e.target.value)}})} placeholder="No IC" />
               </div>
             </div>
 
@@ -903,18 +909,18 @@ export default function App() {
                           const newChildren = [...editingSub.children];
                           newChildren[idx].name = e.target.value;
                           setEditingSub({...editingSub, children: newChildren});
-                       }} />
+                       }} placeholder="Nama Pelajar" />
                        <div className="flex gap-2">
                          <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.year || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].year = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} />
+                         }} placeholder="Tahun" />
                          <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.kelas || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].kelas = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} />
+                         }} placeholder="Kelas" />
                        </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -925,7 +931,7 @@ export default function App() {
                             newChildren[idx].arriveDriver = 'others'; 
                             newChildren[idx].arriveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} />
+                         }} placeholder="Nama Pemandu" />
                        </div>
                        <div>
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Balik ({c.leaveGate})</label>
@@ -935,7 +941,7 @@ export default function App() {
                             newChildren[idx].leaveDriver = 'others';
                             newChildren[idx].leaveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
-                         }} />
+                         }} placeholder="Nama Pemandu" />
                        </div>
                     </div>
                  </div>
@@ -1090,215 +1096,9 @@ export default function App() {
         </div>
       )}
 
-      {/* --- 2. PARENT DATA COLLECTION FORM --- */}
-      {view === 'parentForm' && (
-        <div className="max-w-xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
-          <div className="text-center mb-8 mt-4">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Borang Ibu Bapa</h2>
-            <p className="text-gray-500 font-bold mt-1 tracking-wide">家长/监护人交通资料收集</p>
-          </div>
-          
-          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 mb-6 relative overflow-hidden transition-shadow duration-300">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-blue-400"></div>
-            <h3 className="font-extrabold mb-6 text-xl flex items-center text-gray-800 tracking-tight"><Users size={22} className="mr-2.5 text-blue-500 drop-shadow-sm" /> Maklumat Penjaga / 监护人资料</h3>
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh / 全名</label>
-                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.name} onChange={e => setParentInfo({...parentInfo, name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Kad Pengenalan / 身份证号码</label>
-                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.ic} onChange={e => setParentInfo({...parentInfo, ic: formatIC(e.target.value)})} />
-              </div>
-              <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">No. Telefon / 手机号码</label>
-                  <input type="tel" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" value={parentInfo.phone} onChange={e => setParentInfo({...parentInfo, phone: formatPhone(e.target.value)})} />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Hubungan / 关系</label>
-                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300 cursor-pointer" value={parentInfo.relation} onChange={e => setParentInfo({...parentInfo, relation: e.target.value})}>
-                    <option value="">Pilih / 选择</option>
-                    <option value="IbuBapa">IbuBapa / 父母</option>
-                    <option value="Penjaga">Penjaga / 监护人</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Alamat Rumah / 家庭住址</label>
-                <textarea className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-blue-300 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all duration-300" rows="2" value={parentInfo.address} onChange={e => setParentInfo({...parentInfo, address: e.target.value})}></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 mb-6 transition-shadow duration-300">
-            <label className="block font-extrabold mb-2 text-gray-900 text-lg tracking-tight">Jumlah Anak di Sekolah Ini / 本校就读孩子数量</label>
-            <p className="text-xs text-gray-500 mb-5 font-medium tracking-wide">Sila pilih bilangan anak anda / 请选择</p>
-            <select className="w-full p-4 border-2 border-blue-100 rounded-2xl bg-blue-50/50 hover:bg-blue-50 text-blue-900 font-bold text-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer transition-all duration-300" value={numKids} onChange={(e) => handleNumKidsChange(parseInt(e.target.value))}>
-              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} Orang / 人</option>)}
-            </select>
-          </div>
-
-          <div className="space-y-6">
-            {childrenInfo.map((childData, i) => (
-              <ChildForm 
-                key={i} index={i} data={childData} onChange={handleChildChange}
-                availableClasses={availableClasses} studentsDict={studentsDict} isLoadingStudents={isLoadingStudents} 
-                driversList={driversList}
-                submittedStudentsSet={submittedStudentsSet}
-                currentSelectedStudentsSet={currentSelectedStudentsSet}
-              />
-            ))}
-          </div>
-
-          <button onClick={handleParentSubmit} disabled={isSubmitting} className="mt-10 w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
-            {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Menghantar / 正在提交...</> : <>Hantar / 提交 <ArrowLeft size={22} className="ml-2.5 rotate-180 group-hover:translate-x-1 transition-transform duration-300" /></>}
-          </button>
-        </div>
-      )}
-
-      {/* --- 3. DRIVER REGISTRATION FORM --- */}
-      {view === 'driverForm' && (
-        <div className="max-w-xl mx-auto p-4 pb-24 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
-          <div className="text-center mb-8 mt-4">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
-            <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
-          </div>
-
-          <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-shadow duration-300">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-green-500 to-emerald-400"></div>
-            
-            <div className="bg-green-50/80 p-5 rounded-2xl mb-7 text-sm text-green-800 border border-green-100 font-medium leading-relaxed shadow-inner">
-              Sila isi maklumat terkini anda untuk rujukan pihak sekolah and kemudahan ibu bapa. / 请填写您的最新资料，以便校方记录及方便家长查阅。
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Penuh Pemandu / 司机全名 (IC)</label>
-                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.fullName} onChange={e => setDriverInfo({...driverInfo, fullName: e.target.value})} />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Panggilan / 称呼 (Yang dikenali murid)</label>
-                <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white hover:border-green-300 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300" value={driverInfo.nickname} onChange={e => setDriverInfo({...driverInfo, nickname: e.target.value})} />
-                <p className="text-xs text-gray-400 mt-2 font-medium">Nama ini akan dipaparkan dalam senarai awam.</p>
-              </div>
-
-              {/* Dynamic Phones Input */}
-              <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
-                {driverInfo.phones.map((phone, i) => (
-                  <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
-                    <input type="tel" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
-                    {i > 0 && <button type="button" onClick={() => handleRemoveDriverPhone(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
-                  </div>
-                ))}
-                <button type="button" onClick={handleAddDriverPhone} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Phone</button>
-              </div>
-
-              {/* Dynamic Plates Input */}
-              <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
-                {driverInfo.plates.map((plate, i) => (
-                  <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
-                    <input type="text" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
-                    {i > 0 && <button type="button" onClick={() => handleRemoveDriverPlate(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
-                  </div>
-                ))}
-                <button type="button" onClick={handleAddDriverPlate} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Plate</button>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
-                <div className="grid grid-cols-2 gap-4">
-                  {['A3', 'B'].map(gate => (
-                    <label key={gate} className="border-2 border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 hover:border-green-200 focus-within:ring-4 ring-green-500/20 transition-all duration-300 has-[:checked]:bg-green-50/80 has-[:checked]:border-green-500 has-[:checked]:shadow-sm hover:-translate-y-0.5 active:scale-95">
-                      <input type="radio" name="driverGate" value={gate} checked={driverInfo.gate === gate} onChange={e => setDriverInfo({...driverInfo, gate: e.target.value})} className="sr-only" />
-                      <span className="font-bold text-gray-500 tracking-wide mb-1">Gate</span>
-                      <span className="text-2xl font-black text-gray-900">{gate}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <button onClick={handleDriverSubmit} disabled={isSubmitting} className="mt-10 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-extrabold py-4.5 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all duration-300 text-lg flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed group">
-              {isSubmitting ? <><Loader2 size={22} className="mr-3 animate-spin" /> Sedang Menyimpan / 正在保存...</> : <>Daftar / 提交注册 <PlusCircle size={22} className="ml-2.5 group-hover:rotate-90 transition-transform duration-500" /></>}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- 4. PUBLIC DRIVER LIST VIEW --- */}
-      {view === 'driverList' && (
-        <div className="max-w-4xl mx-auto p-4 animate-in slide-in-from-bottom-4 fade-in duration-500 ease-out">
-          <div className="text-center mb-8 mt-4">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Senarai Pemandu</h2>
-            <p className="text-gray-500 font-bold mt-1 tracking-wide">载送方公共列表</p>
-          </div>
-          
-          <div className="relative mb-8 max-w-xl mx-auto group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search size={20} className="text-gray-400 group-focus-within:text-purple-500 transition-colors duration-300" />
-            </div>
-            <input type="text" className="w-full pl-12 p-4 border border-gray-200 rounded-2xl bg-white hover:border-purple-300 focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none shadow-sm transition-all duration-300 font-medium" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
-              <div className="bg-gradient-to-r from-green-100 to-green-50 text-green-800 font-black text-center py-3.5 rounded-2xl mb-5 shadow-sm border border-green-200/60 uppercase tracking-widest">
-                Gate A3
-              </div>
-              <div className="space-y-4">
-                {driversList.filter(d => d.gate === 'A3').map((driver, i) => (
-                  <div key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-                    <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                      <Bus size={28} strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
-                          <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
-              </div>
-            </div>
-
-            <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-200">
-              <div className="bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 font-black text-center py-3.5 rounded-2xl mb-5 shadow-sm border border-blue-200/60 uppercase tracking-widest">
-                Gate B
-              </div>
-              <div className="space-y-4">
-                {driversList.filter(d => d.gate === 'B').map((driver, i) => (
-                  <div key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
-                      <Bus size={28} strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
-                          <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* --- 5. ADMIN VIEW (Protected) --- */}
       {view === 'admin' && (
-        <div className="max-w-5xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
+        <div className="max-w-7xl mx-auto p-4 animate-in fade-in zoom-in-95 duration-500 ease-out">
           <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-xl mb-8 flex justify-between items-center relative overflow-hidden">
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
             <div className="flex items-center z-10">
@@ -1322,6 +1122,12 @@ export default function App() {
               <FileText size={18} className="mr-2" /> Senarai Rekod / 提交记录
             </button>
             <button 
+              onClick={() => setAdminTab('drivers')} 
+              className={`px-6 py-3 rounded-2xl font-extrabold text-sm transition-all duration-300 flex items-center shadow-sm hover:shadow-md ${adminTab === 'drivers' ? 'bg-purple-600 text-white ring-2 ring-purple-600/50 scale-105' : 'bg-white text-gray-600 hover:bg-purple-50 border border-gray-200'}`}
+            >
+              <Bus size={18} className="mr-2" /> Maklumat Pemandu / 司机信息
+            </button>
+            <button 
               onClick={() => setAdminTab('progress')} 
               className={`px-6 py-3 rounded-2xl font-extrabold text-sm transition-all duration-300 flex items-center shadow-sm hover:shadow-md ${adminTab === 'progress' ? 'bg-green-600 text-white ring-2 ring-green-600/50 scale-105' : 'bg-white text-gray-600 hover:bg-green-50 border border-gray-200'}`}
             >
@@ -1329,77 +1135,26 @@ export default function App() {
             </button>
           </div>
 
-          {adminTab === 'submissions' ? (
+          {adminTab === 'submissions' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
-              {/* 左侧区域：搜索控制 & 系统设置 */}
               <div className="lg:col-span-4 space-y-6 h-fit">
                 {/* Search Controls */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
                   <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
-                  <input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                  <input type="text" placeholder="Cari nama, IC, murid..." className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                   <div className="relative mb-5">
                     <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                       <option value="">Semua Pemandu / 所有司机</option>
-                      {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).join(' / ')})</option>)}
+                      {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).filter(Boolean).join(' / ')})</option>)}
                     </select>
                   </div>
                   <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">
                     Jumpa / 找到: <span className="text-blue-600 font-black text-base">{filteredSubmissions.length}</span> rekod
                   </div>
                 </div>
-
-                {/* Manage Drivers */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                  <div className="flex justify-between items-center mb-5">
-                    <h3 className="font-extrabold text-lg flex items-center text-gray-900"><Bus size={20} className="mr-2.5 text-purple-500"/> Senarai Pemandu</h3>
-                    <button onClick={handleImportExcelDrivers} disabled={isImporting} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center disabled:opacity-50">
-                      {isImporting ? <Loader2 size={14} className="animate-spin" /> : <><DownloadCloud size={14} className="mr-1"/> Import 40</>}
-                    </button>
-                  </div>
-                  <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                    {driversList.map(driver => (
-                      <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
-                        <div className="overflow-hidden pr-2">
-                          <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
-                          <div className="text-[11px] font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
-                        </div>
-                        <div className="flex items-center flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
-                           <button onClick={() => setEditingDriver({
-                             ...driver,
-                             phones: driver.phones && driver.phones.length > 0 ? driver.phones : (driver.phone ? [driver.phone] : ['']),
-                             plates: driver.plates && driver.plates.length > 0 ? driver.plates : (driver.plate ? [driver.plate] : [''])
-                           })} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200" title="Edit Pemandu">
-                             <Pencil size={16} />
-                           </button>
-                           <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200" title="Padam Pemandu">
-                             <Trash2 size={16} />
-                           </button>
-                        </div>
-                      </div>
-                    ))}
-                    {driversList.length === 0 && <div className="text-sm font-medium text-gray-400 text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
-                  </div>
-                </div>
-
-                {/* System Settings */}
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
-                  <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900">Tetapan / 设置</h3>
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <div className="font-bold text-gray-800 text-sm">Pendaftaran Pemandu</div>
-                      <div className="text-xs text-gray-500 mt-0.5 mb-3">Buka/tutup borang awam.</div>
-                    </div>
-                    <button 
-                      onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
-                      className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border border-green-200'}`}
-                    >
-                      {isDriverFormOpen ? 'Tutup Borang (Close)' : 'Buka Borang (Open)'}
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              {/* 右侧区域：Results List */}
+              {/* Submissions List */}
               <div className="lg:col-span-8 space-y-5">
                 {isFetchingAdmin ? (
                   <div className="flex flex-col items-center justify-center p-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -1471,7 +1226,99 @@ export default function App() {
                 )}
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* NEW DRIVERS TAB */}
+          {adminTab === 'drivers' && (
+            <div className="animate-in fade-in duration-500 space-y-6">
+              {/* Header Controls for Drivers */}
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                 <div>
+                   <h3 className="font-extrabold text-2xl text-gray-900 tracking-tight flex items-center"><Bus className="mr-3 text-purple-500" size={28} /> Pengurusan Pemandu</h3>
+                   <p className="text-gray-500 font-medium mt-1">司机管理与设置</p>
+                 </div>
+                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                   <button 
+                      onClick={() => setIsDriverFormOpen(!isDriverFormOpen)} 
+                      className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 shadow-sm flex items-center ${isDriverFormOpen ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}
+                    >
+                      {isDriverFormOpen ? 'Tutup Pendaftaran (Close)' : 'Buka Pendaftaran (Open)'}
+                    </button>
+                    <button onClick={handleImportExcelDrivers} disabled={isImporting} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center disabled:opacity-50">
+                      {isImporting ? <Loader2 size={16} className="animate-spin mr-2" /> : <DownloadCloud size={16} className="mr-2"/>} Import 40
+                    </button>
+                 </div>
+              </div>
+
+              {/* Drivers Grid */}
+              {isFetchingAdmin ? (
+                <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-purple-500" /></div>
+              ) : driversList.length === 0 ? (
+                <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-gray-300 shadow-sm text-gray-400 font-medium">
+                  Tiada pemandu.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {driversList.map(driver => (
+                    <div key={driver.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
+                      
+                      {/* Top Banner (Gate Color) */}
+                      <div className={`p-4 flex justify-between items-start ${driver.gate === 'A3' ? 'bg-green-50' : 'bg-blue-50'}`}>
+                        <div>
+                          <div className={`text-xs font-black tracking-widest uppercase mb-1 ${driver.gate === 'A3' ? 'text-green-600' : 'text-blue-600'}`}>Gate {driver.gate}</div>
+                          <div className="font-extrabold text-lg text-gray-900 truncate pr-2 leading-tight" title={driver.nickname}>{driver.nickname}</div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditingDriver({
+                            ...driver,
+                            phones: driver.phones && driver.phones.length > 0 ? driver.phones : (driver.phone ? [driver.phone] : ['']),
+                            plates: driver.plates && driver.plates.length > 0 ? driver.plates : (driver.plate ? [driver.plate] : [''])
+                          })} className="p-1.5 bg-white text-gray-500 rounded-lg hover:text-blue-600 shadow-sm transition-colors">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => setDeleteDriverId(driver.id)} className="p-1.5 bg-white text-gray-500 rounded-lg hover:text-red-600 shadow-sm transition-colors">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div className="p-5 flex-1 flex flex-col gap-4">
+                        {/* Full Name */}
+                        <div className="flex items-center gap-2">
+                           <div className="p-1.5 bg-gray-100 rounded-md text-gray-400"><IdCard size={14}/></div>
+                           <span className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate" title={driver.fullName}>{driver.fullName || 'TIADA NAMA IC'}</span>
+                        </div>
+
+                        {/* Phones List */}
+                        <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Phone size={10} className="mr-1" /> Telefon</div>
+                          <div className="flex flex-col gap-1">
+                            {(driver.phones || [driver.phone]).filter(Boolean).map((ph, idx) => (
+                               <div key={idx} className="text-sm font-semibold text-gray-700">{ph}</div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Plates List */}
+                        <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Car size={10} className="mr-1" /> Plat Kereta</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
+                               <span key={idx} className="bg-white px-2 py-1 rounded-md text-gray-700 font-mono text-[11px] font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {adminTab === 'progress' && (
             /* PROGRESS TAB CONTENT */
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-in fade-in duration-500">
               <div className="mb-6">

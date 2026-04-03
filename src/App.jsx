@@ -337,46 +337,66 @@ export default function App() {
   }, []);
 
   const fetchDriversList = async (force = false) => {
-    if (!force) {
-      const cached = localStorage.getItem('sjkc_drivers_cache');
-      const time = localStorage.getItem('sjkc_drivers_cache_time');
-      if (cached && time && Date.now() - parseInt(time) < 3600000) {
-        setDriversList(JSON.parse(cached));
-        return;
+    try {
+      if (!force) {
+        const cached = localStorage.getItem('sjkc_drivers_cache');
+        const time = localStorage.getItem('sjkc_drivers_cache_time');
+        if (cached && time && Date.now() - parseInt(time) < 3600000) {
+          setDriversList(JSON.parse(cached));
+          return;
+        }
       }
+      const qSnap = await getDocs(collection(db, "drivers"));
+      const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => a.nickname.localeCompare(b.nickname));
+      setDriversList(list);
+      localStorage.setItem('sjkc_drivers_cache', JSON.stringify(list));
+      localStorage.setItem('sjkc_drivers_cache_time', Date.now().toString());
+    } catch (err) {
+      console.error("Error fetching drivers from DB:", err);
     }
-    const qSnap = await getDocs(collection(db, "drivers"));
-    const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    list.sort((a, b) => a.nickname.localeCompare(b.nickname));
-    setDriversList(list);
-    localStorage.setItem('sjkc_drivers_cache', JSON.stringify(list));
-    localStorage.setItem('sjkc_drivers_cache_time', Date.now().toString());
   };
 
   const fetchSubmissions = async (force = false) => {
     setIsFetchingAdmin(true);
-    if (!force) {
-      const cached = localStorage.getItem('sjkc_subs_cache');
-      const time = localStorage.getItem('sjkc_subs_cache_time');
-      if (cached && time && Date.now() - parseInt(time) < 300000) {
-        setSubmissions(JSON.parse(cached));
-        setIsFetchingAdmin(false);
-        return;
+    try {
+      if (!force) {
+        const cached = localStorage.getItem('sjkc_subs_cache');
+        const time = localStorage.getItem('sjkc_subs_cache_time');
+        if (cached && time && Date.now() - parseInt(time) < 300000) {
+          setSubmissions(JSON.parse(cached));
+          setIsFetchingAdmin(false);
+          return; 
+        }
       }
+
+      const querySnapshot = await getDocs(collection(db, "transport_submissions"));
+      const subs = [];
+      querySnapshot.forEach((doc) => {
+        if (doc.id !== 'system_settings') {
+          subs.push({ id: doc.id, ...doc.data() });
+        }
+      });
+      
+      // Robust sorting to prevent toMillis crash on corrupted/cached createdAt
+      subs.sort((a, b) => {
+        const getMs = (dateObj) => {
+          if (!dateObj) return 0;
+          if (typeof dateObj.toMillis === 'function') return dateObj.toMillis();
+          if (dateObj.seconds) return dateObj.seconds * 1000;
+          return 0;
+        };
+        return getMs(b.createdAt) - getMs(a.createdAt);
+      });
+      
+      setSubmissions(subs);
+      localStorage.setItem('sjkc_subs_cache', JSON.stringify(subs));
+      localStorage.setItem('sjkc_subs_cache_time', Date.now().toString());
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+    } finally {
+      setIsFetchingAdmin(false);
     }
-    const querySnapshot = await getDocs(collection(db, "transport_submissions"));
-    const subs = [];
-    querySnapshot.forEach((doc) => {
-      // Exclude settings document from general list
-      if (doc.id !== 'system_settings') {
-        subs.push({ id: doc.id, ...doc.data() });
-      }
-    });
-    subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-    setSubmissions(subs);
-    localStorage.setItem('sjkc_subs_cache', JSON.stringify(subs));
-    localStorage.setItem('sjkc_subs_cache_time', Date.now().toString());
-    setIsFetchingAdmin(false);
   };
 
   useEffect(() => {
@@ -541,7 +561,7 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       
-      const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo };
+      const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo, createdAt: { seconds: Date.now() / 1000 } };
       const updatedSubs = [newSub, ...submissions];
       setSubmissions(updatedSubs);
       localStorage.setItem('sjkc_subs_cache', JSON.stringify(updatedSubs));
@@ -665,14 +685,15 @@ export default function App() {
       }, { merge: true });
     } catch (e) {
       console.error("Error saving setting", e);
-      setAlertMessage("Gagal menyimpan tetapan. / 保存设置失败。");
+      setAlertMessage("Gagal menyimpan tetapan. Sila semak Firestore Rules (allow update). \n 保存设置失败，请检查数据库 Update 权限。");
+      setIsDriverFormOpen(!newVal); // Revert state if failed
     }
   };
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    if (adminPwd === correctPassword) {
+    const correctPassword = (typeof import !== 'undefined' && import.meta && import.meta.env) ? import.meta.env.VITE_ADMIN_PASSWORD : '';
+    if (adminPwd === correctPassword && correctPassword !== '') {
       setIsAdmin(true);
       setView('admin');
       setAdminTab('submissions'); 

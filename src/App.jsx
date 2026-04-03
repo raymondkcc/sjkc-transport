@@ -1,30 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3, Phone, IdCard } from 'lucide-react';
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 // 引入真实数据库
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
-// --- UTILITY: SAFE STORAGE ---
-const safeSetStorage = (key, data) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch(e) {
-    console.warn("Storage warning:", e);
-  }
-};
-
-const safeGetStorage = (key) => {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
-  } catch(e) {
-    return null;
-  }
-};
-
-// --- UTILITY: SAFE ARRAY GETTERS ---
+// --- UTILITY: SAFE ARRAY GETTERS (防崩溃核心机制) ---
 const getDriverPhones = (d) => {
   if (!d) return [];
   return Array.isArray(d.phones) ? d.phones : (d.phone ? [d.phone] : []);
@@ -376,22 +358,10 @@ export default function App() {
 
   const fetchDriversList = async (force = false) => {
     try {
-      if (!force) {
-        const parsed = safeGetStorage('sjkc_drivers_list_v4');
-        const cacheTime = localStorage.getItem('sjkc_drivers_time_v4');
-        if (parsed && Array.isArray(parsed) && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
-          try {
-            setDriversList(parsed);
-            return;
-          } catch(e) { /* ignore cache parse error */ }
-        }
-      }
       const qSnap = await getDocs(collection(db, "drivers"));
       const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => String(a.nickname || '').localeCompare(String(b.nickname || '')));
       setDriversList(list);
-      safeSetStorage('sjkc_drivers_list_v4', list);
-      localStorage.setItem('sjkc_drivers_time_v4', Date.now().toString());
     } catch (err) {
       console.error("Error fetching drivers from DB:", err);
     }
@@ -400,18 +370,6 @@ export default function App() {
   const fetchSubmissions = async (force = false) => {
     setIsFetchingAdmin(true);
     try {
-      if (!force) {
-        const parsed = safeGetStorage('sjkc_subs_list_v4');
-        const cacheTime = localStorage.getItem('sjkc_subs_time_v4');
-        if (parsed && Array.isArray(parsed) && cacheTime && Date.now() - parseInt(cacheTime) < 300000) {
-          try {
-            setSubmissions(parsed);
-            setIsFetchingAdmin(false);
-            return; 
-          } catch(e) { /* ignore cache parse error */ }
-        }
-      }
-
       const querySnapshot = await getDocs(collection(db, "transport_submissions"));
       const subs = [];
       querySnapshot.forEach((doc) => {
@@ -420,19 +378,18 @@ export default function App() {
         }
       });
       
+      // 绝对安全的排序算法，防止 toMillis 崩溃
       subs.sort((a, b) => {
-        const getMs = (dateObj) => {
-          if (!dateObj) return 0;
-          if (typeof dateObj.toMillis === 'function') return dateObj.toMillis();
-          if (dateObj.seconds) return dateObj.seconds * 1000;
+        const getMs = (obj) => {
+          if (!obj) return 0;
+          if (typeof obj.toMillis === 'function') return obj.toMillis();
+          if (obj.seconds) return obj.seconds * 1000;
           return 0;
         };
         return getMs(b.createdAt) - getMs(a.createdAt);
       });
       
       setSubmissions(subs);
-      safeSetStorage('sjkc_subs_list_v4', subs);
-      localStorage.setItem('sjkc_subs_time_v4', Date.now().toString());
     } catch (error) {
       console.error("Error fetching submissions:", error);
     } finally {
@@ -471,18 +428,6 @@ export default function App() {
       }
 
       try {
-        const parsed = safeGetStorage('sjkc_students_list_v4');
-        const cachedTime = localStorage.getItem('sjkc_students_time_v4');
-        
-        if (parsed && typeof parsed === 'object' && parsed.tempClasses && parsed.tempStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
-           try {
-             setAvailableClasses(parsed.tempClasses);
-             setStudentsDict(parsed.tempStudents);
-             setIsLoadingStudents(false);
-             return; 
-           } catch(e) { /* ignore cache parse error */ }
-        }
-
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
@@ -513,9 +458,6 @@ export default function App() {
 
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
-
-          safeSetStorage('sjkc_students_list_v4', { tempClasses, tempStudents });
-          localStorage.setItem('sjkc_students_time_v4', Date.now().toString());
         }
       } catch (error) {
         console.error("Error fetching from Kehadiran DB:", error);
@@ -608,7 +550,6 @@ export default function App() {
       const currentSubs = Array.isArray(submissions) ? submissions : [];
       const updatedSubs = [newSub, ...currentSubs];
       setSubmissions(updatedSubs);
-      safeSetStorage('sjkc_subs_list_v4', updatedSubs);
 
       setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });

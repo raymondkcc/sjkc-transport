@@ -305,6 +305,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress' | 'drivers'
   const [expandedClass, setExpandedClass] = useState(null);
+  const [adminDriverSearch, setAdminDriverSearch] = useState(''); // NEW
 
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
   const [submissions, setSubmissions] = useState([]);
@@ -762,6 +763,17 @@ export default function App() {
     });
 
     return matchesQuery && matchesDriver;
+  });
+
+  // Filter Drivers for Admin View
+  const filteredAdminDrivers = driversList.filter(d => {
+    const q = adminDriverSearch.toLowerCase();
+    if (!q) return true;
+    const matchNickname = (d.nickname || '').toLowerCase().includes(q);
+    const matchFullName = (d.fullName || '').toLowerCase().includes(q);
+    const matchPlate = (d.plates || [d.plate]).filter(Boolean).some(p => p.toLowerCase().includes(q));
+    const matchPhone = (d.phones || [d.phone]).filter(Boolean).some(p => p.replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+    return matchNickname || matchFullName || matchPlate || matchPhone;
   });
 
   // --- CALCULATION FOR CLASS PROGRESS & PREVENT DUPLICATES ---
@@ -1424,7 +1436,7 @@ export default function App() {
                 {/* Search Controls */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
                   <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
-                  <input type="text" placeholder="Cari nama, IC, murid..." className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                  <input type="text" placeholder="Cari nama ibu bapa, IC, murid..." className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                   <div className="relative mb-5">
                     <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                       <option value="">Semua Pemandu / 所有司机</option>
@@ -1533,16 +1545,28 @@ export default function App() {
                  </div>
               </div>
 
+              {/* SEARCH BAR FOR ADMIN DRIVERS */}
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center max-w-xl transition-shadow focus-within:shadow-md focus-within:ring-2 focus-within:ring-purple-500/20">
+                 <Search size={20} className="text-gray-400 mr-3 ml-2" />
+                 <input 
+                   type="text" 
+                   placeholder="Cari pemandu (Nama, Plat, Telefon)..." 
+                   className="w-full outline-none text-gray-700 font-medium bg-transparent"
+                   value={adminDriverSearch}
+                   onChange={e => setAdminDriverSearch(e.target.value)}
+                 />
+              </div>
+
               {/* Drivers Grid */}
               {isFetchingAdmin ? (
                 <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-purple-500" /></div>
-              ) : driversList.length === 0 ? (
+              ) : filteredAdminDrivers.length === 0 ? (
                 <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-gray-300 shadow-sm text-gray-400 font-medium">
-                  Tiada pemandu.
+                  Tiada pemandu dijumpai. / 未找到该司机。
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {driversList.map(driver => (
+                  {filteredAdminDrivers.map(driver => (
                     <div key={driver.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
                       
                       {/* Top Banner (Gate Color) */}

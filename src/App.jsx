@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud } from 'lucide-react';
-import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil } from 'lucide-react';
+import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
 // 引入真实数据库（完全基于您的生产环境配置）
@@ -8,18 +8,18 @@ import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- FORMATTER FUNCTIONS ---
 const formatPhone = (val) => {
-  let cleaned = val.replace(/\D/g, ''); // 移除所有非数字字符
+  let cleaned = val.replace(/\D/g, ''); 
   if (cleaned.length > 3) {
-    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 12)}`; // 格式化为: 01x xxxxxxx
+    return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 12)}`; 
   }
   return cleaned;
 };
 
 const formatPlate = (val) => {
-  let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, ''); // 转大写并移除所有非字母和数字
-  let match = cleaned.match(/^([A-Z]+)(\d+.*)$/); // 提取字母部分和后续数字/字母部分
+  let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
+  let match = cleaned.match(/^([A-Z]+)(\d+.*)$/); 
   if (match) {
-    return `${match[1]} ${match[2]}`; // 格式化为: ABC 1234
+    return `${match[1]} ${match[2]}`; 
   }
   return cleaned;
 };
@@ -58,7 +58,7 @@ const excelDrivers = [
   { nickname: "Uncle Lai", plates: ["WUP 6896"], gate: "B", phones: ["012 6650708"], fullName: "Lai Yong Fong" },
   { nickname: "Auntie Teoh", plates: ["VMU 6684"], gate: "B", phones: ["017 3555931"], fullName: "Teoh Huey Lian" },
   { nickname: "Auntie Yap", plates: ["WB 5095L"], gate: "B", phones: ["016 9763432"], fullName: "Yap Mooi Yin" },
-  { nickname: "Uncle Lee", plates: ["RY 3383", "WC 2354D"], gate: "B", phones: ["012 6686260"], fullName: "Lee Sing Long" }, // Merged multiple plates
+  { nickname: "Uncle Lee", plates: ["RY 3383", "WC 2354D"], gate: "B", phones: ["012 6686260"], fullName: "Lee Sing Long" }, 
   { nickname: "Auntie Lee", plates: ["WKW 906"], gate: "B", phones: ["012 6686261"], fullName: "Yee Siew Chin" },
   { nickname: "Mdm. Ding Su Ling", plates: ["WNU 6281"], gate: "B", phones: ["016 3181162"], fullName: "Ding Su Ling" },
   { nickname: "Mdm. Ding Su See", plates: ["BLH 2489"], gate: "B", phones: ["016 7787677"], fullName: "Ding Su See" },
@@ -273,11 +273,13 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
-  const [isImporting, setIsImporting] = useState(false); // NEW state for importing excel
+  const [isImporting, setIsImporting] = useState(false); 
   
-  // Delete Modals State
+  // Modals State (Delete & Edit)
   const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
   const [deleteDriverId, setDeleteDriverId] = useState(null);
+  const [editingDriver, setEditingDriver] = useState(null);
+  const [editingSub, setEditingSub] = useState(null);
 
   // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -287,7 +289,7 @@ export default function App() {
   const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
   const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
 
-  // Driver Registration Form State (Updated for Arrays)
+  // Driver Registration Form State
   const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
 
   // Firebase Fetching States
@@ -300,17 +302,34 @@ export default function App() {
     document.title = "SJKC Sin Ming Transport System";
   }, []);
 
-  // Function to fetch drivers from Firestore database
-  const fetchDriversList = async () => {
+  // Function to fetch drivers from DB (with LocalStorage Cache!)
+  const fetchDriversList = async (forceRefresh = false) => {
     try {
+      const DRIVER_CACHE_KEY = 'sjkc_drivers_cache';
+      const DRIVER_CACHE_TIME = 'sjkc_drivers_cache_time';
+      
+      if (!forceRefresh) {
+        const cached = localStorage.getItem(DRIVER_CACHE_KEY);
+        const cacheTime = localStorage.getItem(DRIVER_CACHE_TIME);
+        // 缓存有效时间：1 小时 (1 hour)
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 60) {
+          setDriversList(JSON.parse(cached));
+          return; // 使用缓存，停止向 Firebase 发送请求，节省额度！
+        }
+      }
+
       const qSnap = await getDocs(collection(db, "drivers"));
       const fetchedDrivers = [];
       qSnap.forEach(doc => {
         fetchedDrivers.push({ id: doc.id, ...doc.data() });
       });
-      // Sort alphabetically by nickname
       fetchedDrivers.sort((a, b) => a.nickname.localeCompare(b.nickname));
       setDriversList(fetchedDrivers);
+      
+      // 更新缓存
+      localStorage.setItem(DRIVER_CACHE_KEY, JSON.stringify(fetchedDrivers));
+      localStorage.setItem(DRIVER_CACHE_TIME, Date.now().toString());
+
     } catch (err) {
       console.error("Error fetching drivers from DB:", err);
     }
@@ -324,13 +343,10 @@ export default function App() {
 
     const initDatabasesAndFetch = async () => {
       setIsLoadingStudents(true);
-
-      // Authenticate the Transport DB so we can save forms and fetch drivers
       try {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
-        // Fetch drivers once authenticated
-        await fetchDriversList();
+        await fetchDriversList(); // 会优先使用缓存
       } catch (authErr) {
         console.error("Transport DB Auth Error:", authErr);
       }
@@ -343,7 +359,21 @@ export default function App() {
       }
 
       try {
-        // Authenticate the Kehadiran DB to fetch students
+        const STUDENT_CACHE_KEY = 'sjkc_students_cache';
+        const STUDENT_CACHE_TIME = 'sjkc_students_cache_time';
+
+        // 检查学生名单的本地缓存（缓存 24 小时，极大节省 Firebase Reads 额度）
+        const cachedStudents = localStorage.getItem(STUDENT_CACHE_KEY);
+        const cachedTime = localStorage.getItem(STUDENT_CACHE_TIME);
+        if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
+           const { tempClasses, tempStudents } = JSON.parse(cachedStudents);
+           setAvailableClasses(tempClasses);
+           setStudentsDict(tempStudents);
+           setIsLoadingStudents(false);
+           return; // 命中缓存，停止向下执行，不调用 Firebase
+        }
+
+        // 如果没有缓存，则连接 Kehadiran 数据库读取
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
@@ -374,6 +404,10 @@ export default function App() {
 
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
+
+          // 写入本地缓存，留待下次使用
+          localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify({ tempClasses, tempStudents }));
+          localStorage.setItem(STUDENT_CACHE_TIME, Date.now().toString());
         }
       } catch (error) {
         console.error("Error fetching from Kehadiran DB:", error);
@@ -393,11 +427,9 @@ export default function App() {
       querySnapshot.forEach((doc) => {
         subs.push({ id: doc.id, ...doc.data() });
       });
-      // Sort by newest first
       subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setSubmissions(subs);
-      // Ensure we also refresh drivers in Admin view
-      await fetchDriversList();
+      await fetchDriversList(true); // Admin 视角强制刷新司机数据，不走缓存
     } catch (error) {
       console.error("Error fetching submissions:", error);
     } finally {
@@ -424,7 +456,6 @@ export default function App() {
     
     setIsImporting(true);
     try {
-      // Free tier friendly loop import
       for (const driver of excelDrivers) {
         await addDoc(collection(db, "drivers"), {
           fullName: driver.fullName,
@@ -436,7 +467,7 @@ export default function App() {
         });
       }
       setAlertMessage("Semua 40 Pemandu telah berjaya diimport! \n 40位司机已成功导入！");
-      await fetchDriversList();
+      await fetchDriversList(true); // 强制刷新
     } catch (err) {
       console.error("Error importing drivers:", err);
       setAlertMessage("Ralat semasa import. Sila semak Firestore Rules (memerlukan kebenaran 'create').\n 导入失败，请检查规则是否允许 'create'。");
@@ -458,13 +489,12 @@ export default function App() {
   const handleChildChange = (index, field, value) => {
     setChildrenInfo(prev => {
       const newArr = [...prev];
-      newArr[index] = { ...newArr[index], [field]: value };
+      newArr[index] = { ...newArr[index], [field] : value };
       return newArr;
     });
   };
 
   const handleParentSubmit = async () => {
-    // Basic validation
     if (!parentInfo.name || !parentInfo.phone) {
       setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga. \n 请至少填写监护人姓名与电话号码。");
       return;
@@ -478,7 +508,6 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
-      // Reset form
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });
       setNumKids(1);
       setChildrenInfo([{ ...initialChildState }]);
@@ -518,7 +547,6 @@ export default function App() {
        return;
     }
     
-    // Duplicate check logic across ALL registered plates and phones
     const flatPlates = driversList.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => p.replace(/\s/g, ''));
     const flatPhones = driversList.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => p.replace(/\s/g, ''));
 
@@ -546,8 +574,7 @@ export default function App() {
       });
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
       setDriverInfo({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
-      // update driver list state immediately
-      fetchDriversList();
+      await fetchDriversList(true); // 新注册，强制刷新缓存
       handleBack();
     } catch (error) {
       console.error("Error saving driver: ", error);
@@ -557,13 +584,46 @@ export default function App() {
     }
   };
 
-  // Admin Handlers
+  // Editing Handlers for Admin
+  const handleSaveDriverEdit = async () => {
+    try {
+      const cleanedPhones = editingDriver.phones.filter(p => p.trim() !== '');
+      const cleanedPlates = editingDriver.plates.filter(p => p.trim() !== '');
+      await updateDoc(doc(db, "drivers", editingDriver.id), {
+        fullName: editingDriver.fullName,
+        nickname: editingDriver.nickname,
+        gate: editingDriver.gate,
+        phones: cleanedPhones,
+        plates: cleanedPlates
+      });
+      setAlertMessage("Data pemandu berjaya dikemas kini! \n 司机资料更新成功！");
+      setEditingDriver(null);
+      await fetchDriversList(true); // 修改了数据，强制刷新缓存
+    } catch(e) {
+      console.error("Error updating driver: ", e);
+      setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
+    }
+  };
+
+  const handleSaveSubEdit = async () => {
+    try {
+      await updateDoc(doc(db, "transport_submissions", editingSub.id), {
+        parent: editingSub.parent,
+        children: editingSub.children
+      });
+      setAlertMessage("Rekod berjaya dikemas kini! \n 记录更新成功！");
+      setEditingSub(null);
+      fetchSubmissions();
+    } catch(e) {
+      console.error("Error updating submission: ", e);
+      setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
+    }
+  };
+
+  // Admin Login Handler
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    
-    // 使用 import.meta.env 获取真实的密码环境变量
     const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    
     if (adminPwd === correctPassword) {
       setIsAdmin(true);
       setView('admin');
@@ -592,6 +652,8 @@ export default function App() {
       await deleteDoc(doc(db, "drivers", deleteDriverId));
       setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
       setDeleteDriverId(null);
+      // 同时更新缓存，以免重新读取到被删除的司机
+      await fetchDriversList(true); 
     } catch (error) {
       console.error("Error deleting driver: ", error);
       setAlertMessage("Gagal memadam pemandu. Sila semak Firestore Rules. \n 无法删除司机，请检查数据库权限。");
@@ -613,14 +675,11 @@ export default function App() {
   // Filter Submissions for Admin View
   const filteredSubmissions = submissions.filter(sub => {
     const q = searchQuery.toLowerCase();
-    
-    // Search matching logic (Parent name/IC or Child Name)
     const matchesQuery = !q || 
       (sub.parent?.name || '').toLowerCase().includes(q) || 
       (sub.parent?.ic || '').toLowerCase().includes(q) ||
       (sub.children || []).some(c => (c.name || '').toLowerCase().includes(q));
 
-    // Driver matching logic
     const matchesDriver = !filterDriver || (sub.children || []).some(c => {
       const actualArrive = c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver;
       const actualLeave = c.sameDriver ? actualArrive : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver);
@@ -634,7 +693,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12 overflow-x-hidden">
       {showDisclaimer && <DisclaimerPopup onAccept={() => setShowDisclaimer(false)} />}
       
-      {/* Alert Modal (Dual Language) */}
+      {/* Alert Modal */}
       {alertMessage && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out text-center">
@@ -644,7 +703,142 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete Submission Confirmation Modal (Dual Language) */}
+      {/* Admin: Edit Driver Modal */}
+      {editingDriver && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+          <div className="bg-white p-8 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
+             <h3 className="font-extrabold text-2xl mb-6 text-gray-900 tracking-tight">Edit Pemandu / 编辑司机</h3>
+             
+             <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Penuh (IC)</label>
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.fullName} onChange={e => setEditingDriver({...editingDriver, fullName: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Panggilan</label>
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.nickname} onChange={e => setEditingDriver({...editingDriver, nickname: e.target.value})} />
+                </div>
+
+                <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                  <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Telefon</label>
+                  {editingDriver.phones.map((phone, i) => (
+                    <div key={i} className="flex gap-2 mb-3">
+                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium" value={phone} onChange={e => {
+                        const newP = [...editingDriver.phones];
+                        newP[i] = formatPhone(e.target.value);
+                        setEditingDriver({...editingDriver, phones: newP});
+                      }} />
+                      <button onClick={() => setEditingDriver({...editingDriver, phones: editingDriver.phones.filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
+                    </div>
+                  ))}
+                  <button onClick={() => setEditingDriver({...editingDriver, phones: [...editingDriver.phones, '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Phone</button>
+                </div>
+
+                <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                  <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Plat</label>
+                  {editingDriver.plates.map((plate, i) => (
+                    <div key={i} className="flex gap-2 mb-3">
+                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none uppercase font-bold tracking-wider" value={plate} onChange={e => {
+                        const newP = [...editingDriver.plates];
+                        newP[i] = formatPlate(e.target.value);
+                        setEditingDriver({...editingDriver, plates: newP});
+                      }} />
+                      <button onClick={() => setEditingDriver({...editingDriver, plates: editingDriver.plates.filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
+                    </div>
+                  ))}
+                  <button onClick={() => setEditingDriver({...editingDriver, plates: [...editingDriver.plates, '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Plate</button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Gate</label>
+                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.gate} onChange={e => setEditingDriver({...editingDriver, gate: e.target.value})}>
+                    <option value="A3">Gate A3</option>
+                    <option value="B">Gate B</option>
+                  </select>
+                </div>
+             </div>
+
+             <div className="flex gap-4 mt-8">
+               <button onClick={() => setEditingDriver(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-2xl font-bold transition-all duration-300 active:scale-95">Batal</button>
+               <button onClick={handleSaveDriverEdit} className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">Simpan</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin: Edit Submission Modal */}
+      {editingSub && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+          <div className="bg-white p-8 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out custom-scrollbar">
+            <h3 className="font-extrabold text-2xl mb-6 text-gray-900 tracking-tight">Edit Rekod / 编辑记录</h3>
+            
+            <div className="mb-6">
+              <h4 className="font-extrabold text-sm text-blue-600 mb-3 uppercase tracking-wider flex items-center"><Users size={16} className="mr-1.5"/>Maklumat Penjaga</h4>
+              <div className="grid grid-cols-2 gap-4">
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent.name} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} placeholder="Nama Penuh" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent.phone} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: e.target.value}})} placeholder="No Telefon" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent.ic} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: e.target.value}})} placeholder="No IC" />
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-extrabold text-sm text-blue-600 mb-3 uppercase tracking-wider flex items-center"><FileText size={16} className="mr-1.5"/>Maklumat Pelajar</h4>
+              {editingSub.children.map((c, idx) => (
+                 <div key={idx} className="p-4 bg-gray-50/80 rounded-2xl mb-4 border border-gray-100">
+                    <div className="font-bold text-gray-800 text-sm mb-3">Anak {idx + 1}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                       <input className="p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold" value={c.name} onChange={(e) => {
+                          const newChildren = [...editingSub.children];
+                          newChildren[idx].name = e.target.value;
+                          setEditingSub({...editingSub, children: newChildren});
+                       }} placeholder="Nama Pelajar" />
+                       <div className="flex gap-2">
+                         <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.year} onChange={(e) => {
+                            const newChildren = [...editingSub.children];
+                            newChildren[idx].year = e.target.value;
+                            setEditingSub({...editingSub, children: newChildren});
+                         }} placeholder="Tahun" />
+                         <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.kelas} onChange={(e) => {
+                            const newChildren = [...editingSub.children];
+                            newChildren[idx].kelas = e.target.value;
+                            setEditingSub({...editingSub, children: newChildren});
+                         }} placeholder="Kelas" />
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                       <div>
+                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Datang ({c.arriveGate})</label>
+                         <input className="w-full p-3 border border-green-200 rounded-xl bg-green-50/30 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" value={c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver} onChange={(e) => {
+                            const newChildren = [...editingSub.children];
+                            newChildren[idx].arriveDriver = 'others'; // Force direct string mapping
+                            newChildren[idx].arriveDriverOther = e.target.value;
+                            setEditingSub({...editingSub, children: newChildren});
+                         }} placeholder="Nama Pemandu" />
+                       </div>
+                       <div>
+                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Balik ({c.leaveGate})</label>
+                         <input className="w-full p-3 border border-orange-200 rounded-xl bg-orange-50/30 focus:bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" value={c.sameDriver ? (c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver) : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver)} onChange={(e) => {
+                            const newChildren = [...editingSub.children];
+                            newChildren[idx].sameDriver = false; // Break the link to edit specifically
+                            newChildren[idx].leaveDriver = 'others';
+                            newChildren[idx].leaveDriverOther = e.target.value;
+                            setEditingSub({...editingSub, children: newChildren});
+                         }} placeholder="Nama Pemandu" />
+                       </div>
+                    </div>
+                 </div>
+              ))}
+            </div>
+
+            <div className="flex gap-4 mt-8">
+               <button onClick={() => setEditingSub(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-2xl font-bold transition-all duration-300 active:scale-95">Batal</button>
+               <button onClick={handleSaveSubEdit} className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 rounded-2xl font-bold transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Submission Confirmation Modal */}
       {deleteSubmissionId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
@@ -661,7 +855,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete Driver Confirmation Modal (Dual Language) */}
+      {/* Delete Driver Confirmation Modal */}
       {deleteDriverId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
@@ -901,7 +1095,7 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
+                <label className="block text-xs font-bold mb-2 text-gray-600 uppercase tracking-wider">Gate Menunggu / 等候校门 (Sila Pilih)</label>
                 <div className="grid grid-cols-2 gap-4">
                   {['A3', 'B'].map(gate => (
                     <label key={gate} className="border-2 border-gray-100 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-green-50 hover:border-green-200 focus-within:ring-4 ring-green-500/20 transition-all duration-300 has-[:checked]:bg-green-50/80 has-[:checked]:border-green-500 has-[:checked]:shadow-sm hover:-translate-y-0.5 active:scale-95">
@@ -948,8 +1142,7 @@ export default function App() {
                       <Bus size={28} strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300 truncate">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-500 mb-2 truncate">{(driver.phones || [driver.phone]).filter(Boolean).join(' / ')}</div>
+                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
                           <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
@@ -973,8 +1166,7 @@ export default function App() {
                       <Bus size={28} strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300 truncate">{driver.nickname}</div>
-                      <div className="text-sm font-semibold text-gray-500 mb-2 truncate">{(driver.phones || [driver.phone]).filter(Boolean).join(' / ')}</div>
+                      <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
                           <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
@@ -1038,11 +1230,16 @@ export default function App() {
                     <div key={driver.id} className="flex justify-between items-center p-3.5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-white transition-all duration-200 group">
                       <div className="overflow-hidden pr-2">
                         <div className="font-bold text-gray-900 text-sm truncate">{driver.nickname}</div>
-                        <div className="text-xs font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
+                        <div className="text-[11px] font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
                       </div>
-                      <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 flex-shrink-0 opacity-50 group-hover:opacity-100" title="Padam Pemandu">
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
+                         <button onClick={() => setEditingDriver(driver)} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200" title="Edit Pemandu">
+                           <Pencil size={16} />
+                         </button>
+                         <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200" title="Padam Pemandu">
+                           <Trash2 size={16} />
+                         </button>
+                      </div>
                     </div>
                   ))}
                   {driversList.length === 0 && <div className="text-sm font-medium text-gray-400 text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
@@ -1096,9 +1293,14 @@ export default function App() {
                           IC: {sub.parent?.ic}
                         </div>
                       </div>
-                      <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 active:scale-95" title="Padam Rekod">
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setEditingSub(sub)} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200 active:scale-95" title="Edit Rekod">
+                          <Pencil size={18} />
+                        </button>
+                        <button onClick={() => setDeleteSubmissionId(sub.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200 active:scale-95" title="Padam Rekod">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Children List */}

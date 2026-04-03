@@ -6,8 +6,18 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 // 引入真实数据库
 import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
+// --- UTILITY: CACHE KEYS (V3 BUSTER) ---
+// 强制刷新旧缓存，解决白屏崩溃问题
+const CACHE_KEYS = {
+  DRIVERS: 'sjkc_drivers_cache_v3',
+  DRIVERS_TIME: 'sjkc_drivers_time_v3',
+  SUBS: 'sjkc_subs_cache_v3',
+  SUBS_TIME: 'sjkc_subs_time_v3',
+  STUDENTS: 'sjkc_students_cache_v3',
+  STUDENTS_TIME: 'sjkc_students_time_v3'
+};
+
 // --- UTILITY: SAFE STORAGE ---
-// 保护机制：防止因为 LocalStorage 损坏或超出容量导致整个应用白屏崩溃
 const safeSetStorage = (key, data) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
@@ -26,7 +36,6 @@ const safeGetStorage = (key) => {
 };
 
 // --- UTILITY: SAFE ARRAY GETTERS ---
-// 保护机制：防止从缓存加载的旧数据格式不对（如缺失数组）导致的 .map() 崩溃
 const getDriverPhones = (d) => {
   if (!d) return [];
   return Array.isArray(d.phones) ? d.phones : (d.phone ? [d.phone] : []);
@@ -155,7 +164,6 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
 
   const getDriverLabel = (d) => `${d.nickname || ''} (${getDriverPlates(d).filter(Boolean).join(' / ')})`;
   
-  // Safe classes getter
   const getKelasList = (y) => Array.isArray(availableClasses[y]) ? availableClasses[y] : [];
   const getStudentsList = (y, k) => Array.isArray(studentsDict[`${y}-${k}`]) ? studentsDict[`${y}-${k}`] : [];
 
@@ -381,8 +389,8 @@ export default function App() {
   const fetchDriversList = async (force = false) => {
     try {
       if (!force) {
-        const parsed = safeGetStorage('sjkc_drivers_cache');
-        const cacheTime = localStorage.getItem('sjkc_drivers_cache_time');
+        const parsed = safeGetStorage(CACHE_KEYS.DRIVERS);
+        const cacheTime = localStorage.getItem(CACHE_KEYS.DRIVERS_TIME);
         if (parsed && Array.isArray(parsed) && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
           setDriversList(parsed);
           return;
@@ -392,8 +400,8 @@ export default function App() {
       const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       list.sort((a, b) => String(a.nickname || '').localeCompare(String(b.nickname || '')));
       setDriversList(list);
-      safeSetStorage('sjkc_drivers_cache', list);
-      localStorage.setItem('sjkc_drivers_cache_time', Date.now().toString());
+      safeSetStorage(CACHE_KEYS.DRIVERS, list);
+      localStorage.setItem(CACHE_KEYS.DRIVERS_TIME, Date.now().toString());
     } catch (err) {
       console.error("Error fetching drivers from DB:", err);
     }
@@ -403,8 +411,8 @@ export default function App() {
     setIsFetchingAdmin(true);
     try {
       if (!force) {
-        const parsed = safeGetStorage('sjkc_subs_cache');
-        const cacheTime = localStorage.getItem('sjkc_subs_cache_time');
+        const parsed = safeGetStorage(CACHE_KEYS.SUBS);
+        const cacheTime = localStorage.getItem(CACHE_KEYS.SUBS_TIME);
         if (parsed && Array.isArray(parsed) && cacheTime && Date.now() - parseInt(cacheTime) < 300000) {
           setSubmissions(parsed);
           setIsFetchingAdmin(false);
@@ -431,8 +439,8 @@ export default function App() {
       });
       
       setSubmissions(subs);
-      safeSetStorage('sjkc_subs_cache', subs);
-      localStorage.setItem('sjkc_subs_cache_time', Date.now().toString());
+      safeSetStorage(CACHE_KEYS.SUBS, subs);
+      localStorage.setItem(CACHE_KEYS.SUBS_TIME, Date.now().toString());
     } catch (error) {
       console.error("Error fetching submissions:", error);
     } finally {
@@ -470,8 +478,8 @@ export default function App() {
       }
 
       try {
-        const parsed = safeGetStorage('sjkc_students_cache');
-        const cachedTime = localStorage.getItem('sjkc_students_cache_time');
+        const parsed = safeGetStorage(CACHE_KEYS.STUDENTS);
+        const cachedTime = localStorage.getItem(CACHE_KEYS.STUDENTS_TIME);
         
         if (parsed && typeof parsed === 'object' && parsed.tempClasses && parsed.tempStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
            setAvailableClasses(parsed.tempClasses);
@@ -510,8 +518,8 @@ export default function App() {
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
 
-          safeSetStorage('sjkc_students_cache', { tempClasses, tempStudents });
-          localStorage.setItem('sjkc_students_cache_time', Date.now().toString());
+          safeSetStorage(CACHE_KEYS.STUDENTS, { tempClasses, tempStudents });
+          localStorage.setItem(CACHE_KEYS.STUDENTS_TIME, Date.now().toString());
         }
       } catch (error) {
         console.error("Error fetching from Kehadiran DB:", error);
@@ -604,7 +612,7 @@ export default function App() {
       const currentSubs = Array.isArray(submissions) ? submissions : [];
       const updatedSubs = [newSub, ...currentSubs].filter(s => s && s.id !== 'system_settings');
       setSubmissions(updatedSubs);
-      safeSetStorage('sjkc_subs_cache', updatedSubs);
+      safeSetStorage(CACHE_KEYS.SUBS, updatedSubs);
 
       setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });
@@ -735,7 +743,9 @@ export default function App() {
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
+    let correctPassword = '';
+    try { correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || ''; } catch(err) {}
+    
     if (adminPwd === correctPassword && correctPassword !== '') {
       setIsAdmin(true);
       setView('admin');
@@ -1696,7 +1706,7 @@ export default function App() {
                 <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-green-500" /></div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(progressStats || []).map(stat => {
+                  {progressStats.map(stat => {
                     const percentage = stat.total > 0 ? Math.round((stat.submitted / stat.total) * 100) : 0;
                     const isComplete = percentage === 100 && stat.total > 0;
                     
@@ -1727,7 +1737,7 @@ export default function App() {
                         {/* Expanded Dropdown Content */}
                         {expandedClass === stat.classKey && (
                           <div className="p-4 bg-white max-h-72 overflow-y-auto custom-scrollbar border-t border-green-100">
-                             {(stat.students || []).map((student, sIdx) => {
+                             {stat.students.map((student, sIdx) => {
                                const isSubbed = stat.submittedSet.has(`${stat.year}-${stat.kelas}-${student}`);
                                return (
                                  <div key={sIdx} className={`text-xs font-bold p-3 mb-2 rounded-xl flex justify-between items-center border transition-all ${isSubbed ? 'bg-green-50/50 border-green-200/60 text-green-800 shadow-sm' : 'bg-red-50/50 border-red-200/60 text-red-800'}`}>
@@ -1736,7 +1746,7 @@ export default function App() {
                                  </div>
                                );
                              })}
-                             {(stat.students || []).length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
+                             {stat.students.length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
                           </div>
                         )}
                       </div>

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, ArrowLeft, Bus, Car, FileText, Users, Search, PlusCircle, LogOut, Lock, Loader2, Trash2, DownloadCloud, Pencil, CheckCircle2, XCircle, BarChart3, Phone, IdCard } from 'lucide-react';
-// Added setDoc and onSnapshot for the global toggle
 import { doc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, setDoc, onSnapshot } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
@@ -34,6 +33,19 @@ const formatPlate = (val) => {
     return `${match[1]} ${match[2]}`; 
   }
   return cleaned;
+};
+
+const formatTimestamp = (ts) => {
+  if (!ts) return 'Data Lama / Import';
+  try {
+    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    return date.toLocaleString('en-MY', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
+  } catch (e) {
+    return 'Format Ralat';
+  }
 };
 
 // --- TRANSCRIBED EXCEL DRIVERS DATA (Pre-formatted & Merged) ---
@@ -1126,9 +1138,9 @@ export default function App() {
             
             <button 
               onClick={() => { if(isDriverFormOpen || isAdmin) navigateTo('driverForm'); }} 
-              className={`w-full bg-white/95 backdrop-blur text-gray-900 font-bold py-4 px-6 rounded-3xl shadow-xl transition-all duration-300 flex items-center border text-left group animate-in slide-in-from-bottom-8 fade-in duration-700 delay-300 ${(!isDriverFormOpen && !isAdmin) ? 'opacity-70 cursor-not-allowed border-transparent grayscale-[30%]' : 'hover:shadow-2xl hover:-translate-y-1.5 active:scale-95 active:translate-y-0 border-white/40 hover:border-green-400'}`}
+              className={`w-full bg-white/95 backdrop-blur text-gray-900 font-bold py-4 px-6 rounded-3xl shadow-xl transition-all duration-300 flex items-start border text-left group animate-in slide-in-from-bottom-8 fade-in duration-700 delay-300 ${(!isDriverFormOpen && !isAdmin) ? 'opacity-70 cursor-not-allowed border-transparent grayscale-[30%]' : 'hover:shadow-2xl hover:-translate-y-1.5 active:scale-95 active:translate-y-0 border-white/40 hover:border-green-400'}`}
             >
-              <div className={`p-3.5 rounded-2xl mr-5 transition-all duration-300 shadow-sm ${isDriverFormOpen || isAdmin ? 'bg-green-50 group-hover:bg-green-500 group-hover:text-white group-hover:shadow-green-500/40 group-hover:scale-110' : 'bg-gray-100 text-gray-400'}`}>
+              <div className={`p-3.5 rounded-2xl mr-5 transition-all duration-300 shadow-sm mt-1 ${isDriverFormOpen || isAdmin ? 'bg-green-50 group-hover:bg-green-500 group-hover:text-white group-hover:shadow-green-500/40 group-hover:scale-110' : 'bg-gray-100 text-gray-400'}`}>
                 <FileText size={26} strokeWidth={2.5} />
               </div>
               <div className="flex-1">
@@ -1137,6 +1149,16 @@ export default function App() {
                   {!isDriverFormOpen && <span className="bg-red-100 text-red-600 text-[10px] py-1 px-2.5 rounded-lg border border-red-200 font-black tracking-widest uppercase shadow-sm">Closed</span>}
                 </div>
                 <div className="text-sm font-medium text-gray-500 mt-0.5">司机注册 / 更新表格</div>
+                
+                {/* NEW WARNING MESSAGE */}
+                <div className="mt-3.5 bg-orange-50 p-3.5 rounded-xl border border-orange-100/80 group-hover:border-orange-200 transition-colors">
+                  <p className="text-[11px] font-bold text-orange-800 leading-relaxed text-justify mb-1.5">
+                    Bahagian ini perlu diisi oleh pemandu pintu transporter B dan A3 yang berdaftar dengan pihak sekolah saja.
+                  </p>
+                  <p className="text-[11px] font-bold text-orange-800 leading-relaxed text-justify border-t border-orange-200/60 pt-1.5">
+                    只有B 门和 A3 门和学校注册的学生运输司机需要填此部分.
+                  </p>
+                </div>
               </div>
             </button>
 
@@ -1235,6 +1257,21 @@ export default function App() {
           <div className="text-center mb-8 mt-4">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
+
+            {/* NEW WARNING MESSAGE */}
+            <div className="mt-6 bg-orange-50 text-orange-800 p-4.5 rounded-2xl border border-orange-200 shadow-sm inline-block text-left max-w-lg mx-auto">
+              <div className="flex items-start gap-3">
+                <ShieldAlert size={22} className="text-orange-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-extrabold mb-2 leading-snug">
+                    Bahagian ini perlu diisi oleh pemandu pintu transporter B dan A3 yang berdaftar dengan pihak sekolah saja.
+                  </p>
+                  <p className="text-sm font-bold border-t border-orange-200/60 pt-2 leading-snug">
+                    只有B 门和 A3 门和学校注册的学生运输司机需要填此部分.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white p-7 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-shadow duration-300">
@@ -1567,7 +1604,9 @@ export default function App() {
                           );
                         })}
                       </div>
-                      <div className="text-[10px] font-mono text-gray-300 mt-4 text-right">ID: {sub.id}</div>
+                      <div className="text-[10px] font-mono text-gray-300 mt-4 text-right">
+                        ID: {sub.id} &nbsp;|&nbsp; 🕒 {formatTimestamp(sub.createdAt)}
+                      </div>
                     </div>
                   ))
                 )}
@@ -1669,6 +1708,13 @@ export default function App() {
                                <span key={idx} className="bg-white px-2 py-1 rounded-md text-gray-700 font-mono text-[11px] font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
                             ))}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* TIMESTAMP FOOTER */}
+                      <div className="bg-gray-50/80 border-t border-gray-100 p-3 text-center">
+                        <div className="text-[10px] font-mono text-gray-400 font-medium">
+                          🕒 Didaftarkan: {formatTimestamp(driver.createdAt)}
                         </div>
                       </div>
 

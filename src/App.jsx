@@ -133,7 +133,21 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         <div>
           <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Tahun / 年级</label>
           <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
-            value={data.year} onChange={(e) => { handleChange('year', e.target.value); handleChange('kelas', ''); handleChange('name', ''); }} disabled={isLoadingStudents}>
+            value={data.year} onChange={(e) => { 
+              const selectedYear = e.target.value;
+              handleChange('year', selectedYear); 
+              handleChange('kelas', ''); 
+              handleChange('name', ''); 
+              
+              // Auto-fill session based on year
+              if (['1', '2', '3'].includes(selectedYear)) {
+                handleChange('session', 'afternoon');
+              } else if (['4', '5', '6'].includes(selectedYear)) {
+                handleChange('session', 'morning');
+              } else {
+                handleChange('session', '');
+              }
+            }} disabled={isLoadingStudents}>
             <option value="">Pilih / 选择</option>
             {Object.keys(availableClasses).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
           </select>

@@ -8,7 +8,8 @@ import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- FORMATTER FUNCTIONS ---
 const formatIC = (val) => {
-  let cleaned = val.replace(/\D/g, ''); 
+  if (!val) return '';
+  let cleaned = String(val).replace(/\D/g, ''); 
   if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); 
   if (cleaned.length > 8) {
     return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; 
@@ -19,7 +20,8 @@ const formatIC = (val) => {
 };
 
 const formatPhone = (val) => {
-  let cleaned = val.replace(/\D/g, ''); 
+  if (!val) return '';
+  let cleaned = String(val).replace(/\D/g, ''); 
   if (cleaned.length > 3) {
     return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 12)}`; 
   }
@@ -27,7 +29,8 @@ const formatPhone = (val) => {
 };
 
 const formatPlate = (val) => {
-  let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
+  if (!val) return '';
+  let cleaned = String(val).toUpperCase().replace(/[^A-Z0-9]/g, ''); 
   let match = cleaned.match(/^([A-Z]+)(\d+.*)$/); 
   if (match) {
     return `${match[1]} ${match[2]}`; 
@@ -114,7 +117,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
     onChange(index, field, value);
   };
 
-  const getDriverLabel = (d) => `${d.nickname} (${(d.plates || [d.plate]).filter(Boolean).join(' / ')})`;
+  const getDriverLabel = (d) => `${d.nickname || ''} (${(d.plates || [d.plate]).filter(Boolean).join(' / ')})`;
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 mb-6 relative overflow-hidden group">
@@ -340,15 +343,17 @@ export default function App() {
     try {
       if (!force) {
         const cached = localStorage.getItem('sjkc_drivers_cache');
-        const time = localStorage.getItem('sjkc_drivers_cache_time');
-        if (cached && time && Date.now() - parseInt(time) < 3600000) {
-          setDriversList(JSON.parse(cached));
-          return;
+        const cacheTime = localStorage.getItem('sjkc_drivers_cache_time');
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
+          try {
+            setDriversList(JSON.parse(cached));
+            return;
+          } catch(e) { /* ignore cache parse error */ }
         }
       }
       const qSnap = await getDocs(collection(db, "drivers"));
       const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => a.nickname.localeCompare(b.nickname));
+      list.sort((a, b) => String(a.nickname || '').localeCompare(String(b.nickname || '')));
       setDriversList(list);
       localStorage.setItem('sjkc_drivers_cache', JSON.stringify(list));
       localStorage.setItem('sjkc_drivers_cache_time', Date.now().toString());
@@ -362,11 +367,13 @@ export default function App() {
     try {
       if (!force) {
         const cached = localStorage.getItem('sjkc_subs_cache');
-        const time = localStorage.getItem('sjkc_subs_cache_time');
-        if (cached && time && Date.now() - parseInt(time) < 300000) {
-          setSubmissions(JSON.parse(cached));
-          setIsFetchingAdmin(false);
-          return; 
+        const cacheTime = localStorage.getItem('sjkc_subs_cache_time');
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 300000) {
+          try {
+            setSubmissions(JSON.parse(cached));
+            setIsFetchingAdmin(false);
+            return; 
+          } catch(e) { /* ignore cache parse error */ }
         }
       }
 
@@ -404,13 +411,12 @@ export default function App() {
       if (!localStorage.getItem('hideTransportDisclaimer')) setShowDisclaimer(true);
       
       try {
-        const defaultAuth = getAuth();
-        await signInAnonymously(defaultAuth);
+        await signInAnonymously(auth);
         
         // Fetch System Settings
         try {
           const settingsSnap = await getDoc(doc(db, "transport_submissions", "system_settings"));
-          if (settingsSnap.exists()) {
+          if (settingsSnap.exists() && settingsSnap.data()) {
             setIsDriverFormOpen(settingsSnap.data().isDriverFormOpen !== false);
           }
         } catch(e) {
@@ -436,18 +442,20 @@ export default function App() {
         const cachedStudents = localStorage.getItem(STUDENT_CACHE_KEY);
         const cachedTime = localStorage.getItem(STUDENT_CACHE_TIME);
         if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
-           const { tempClasses, tempStudents } = JSON.parse(cachedStudents);
-           setAvailableClasses(tempClasses);
-           setStudentsDict(tempStudents);
-           setIsLoadingStudents(false);
-           return; 
+           try {
+             const { tempClasses, tempStudents } = JSON.parse(cachedStudents);
+             setAvailableClasses(tempClasses);
+             setStudentsDict(tempStudents);
+             setIsLoadingStudents(false);
+             return; 
+           } catch(e) { /* ignore cache parse error */ }
         }
 
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data()) {
           const studentArray = docSnap.data().list || [];
           const tempClasses = {};
           const tempStudents = {};
@@ -562,7 +570,7 @@ export default function App() {
       });
       
       const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo, createdAt: { seconds: Date.now() / 1000 } };
-      const updatedSubs = [newSub, ...submissions];
+      const updatedSubs = [newSub, ...submissions].filter(s => s.id !== 'system_settings');
       setSubmissions(updatedSubs);
       localStorage.setItem('sjkc_subs_cache', JSON.stringify(updatedSubs));
 
@@ -604,16 +612,16 @@ export default function App() {
        return;
     }
     
-    const flatPlates = driversList.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => p.replace(/\s/g, ''));
-    const flatPhones = driversList.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => p.replace(/\s/g, ''));
+    const flatPlates = driversList.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
+    const flatPhones = driversList.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
 
-    const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(p.replace(/\s/g, '')));
+    const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(String(p).replace(/\s/g, '')));
     if (duplicatePlate) {
       setAlertMessage(`Pendaftaran ditolak. Plat kereta ${duplicatePlate} telah didaftarkan sebelum ini.\n注册拒绝。车牌 ${duplicatePlate} 已经被别人注册过了。`);
       return;
     }
 
-    const duplicatePhone = cleanedPhones.find(p => flatPhones.includes(p.replace(/\s/g, '')));
+    const duplicatePhone = cleanedPhones.find(p => flatPhones.includes(String(p).replace(/\s/g, '')));
     if (duplicatePhone) {
       setAlertMessage(`Pendaftaran ditolak. No Telefon ${duplicatePhone} telah didaftarkan sebelum ini.\n注册拒绝。电话号码 ${duplicatePhone} 已经被别人注册过了。`);
       return;
@@ -692,8 +700,14 @@ export default function App() {
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
-    if (adminPwd === correctPassword && correctPassword) {
+    let correctPassword = '';
+    try {
+      correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
+    } catch(err) {
+      console.error("Env load error:", err);
+    }
+    
+    if (adminPwd === correctPassword && correctPassword !== '') {
       setIsAdmin(true);
       setView('admin');
       setAdminTab('submissions'); 
@@ -742,18 +756,19 @@ export default function App() {
   };
 
   const filteredSubmissions = submissions.filter(sub => {
-    const q = searchQuery.toLowerCase();
+    if(sub.id === 'system_settings') return false; // Extra safety guard
+    const q = String(searchQuery || '').toLowerCase();
     const matchesQuery = !q || 
-      (sub.parent?.name || '').toLowerCase().includes(q) || 
-      (sub.parent?.ic || '').toLowerCase().includes(q) ||
-      (sub.children || []).some(c => (c.name || '').toLowerCase().includes(q));
+      String(sub.parent?.name || '').toLowerCase().includes(q) || 
+      String(sub.parent?.ic || '').toLowerCase().includes(q) ||
+      (sub.children || []).some(c => String(c.name || '').toLowerCase().includes(q));
 
     const matchesDriver = !filterDriver || (sub.children || []).some(c => {
       const actualArrive = c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver;
       const actualLeave = c.sameDriver ? actualArrive : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver);
       
-      const arrMatch = actualArrive && (actualArrive.includes(filterDriver) || filterDriver.includes(actualArrive));
-      const leaveMatch = actualLeave && (actualLeave.includes(filterDriver) || filterDriver.includes(actualLeave));
+      const arrMatch = actualArrive && (String(actualArrive).includes(filterDriver) || filterDriver.includes(String(actualArrive)));
+      const leaveMatch = actualLeave && (String(actualLeave).includes(filterDriver) || filterDriver.includes(String(actualLeave)));
       
       return arrMatch || leaveMatch;
     });
@@ -762,18 +777,19 @@ export default function App() {
   });
 
   const filteredAdminDrivers = driversList.filter(d => {
-    const q = adminDriverSearch.toLowerCase();
+    const q = String(adminDriverSearch || '').toLowerCase();
     if (!q) return true;
-    const matchNickname = (d.nickname || '').toLowerCase().includes(q);
-    const matchFullName = (d.fullName || '').toLowerCase().includes(q);
-    const matchPlate = (d.plates || [d.plate]).filter(Boolean).some(p => p.toLowerCase().includes(q));
-    const matchPhone = (d.phones || [d.phone]).filter(Boolean).some(p => p.replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+    const matchNickname = String(d.nickname || '').toLowerCase().includes(q);
+    const matchFullName = String(d.fullName || '').toLowerCase().includes(q);
+    const matchPlate = (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(q));
+    const matchPhone = (d.phones || [d.phone]).filter(Boolean).some(p => String(p).replace(/\s/g, '').includes(q.replace(/\s/g, '')));
     return matchNickname || matchFullName || matchPlate || matchPhone;
   });
 
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
     submissions.forEach(sub => {
+      if (sub.id === 'system_settings') return; // Extra safety
       (sub.children || []).forEach(c => {
         if (c.year && c.kelas && c.name) {
           submittedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);
@@ -840,18 +856,18 @@ export default function App() {
              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Penuh (IC)</label>
-                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.fullName} onChange={e => setEditingDriver({...editingDriver, fullName: e.target.value})} />
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.fullName || ''} onChange={e => setEditingDriver({...editingDriver, fullName: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Panggilan</label>
-                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.nickname} onChange={e => setEditingDriver({...editingDriver, nickname: e.target.value})} />
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.nickname || ''} onChange={e => setEditingDriver({...editingDriver, nickname: e.target.value})} />
                 </div>
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                   <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Telefon</label>
                   {(editingDriver.phones || []).map((phone, i) => (
                     <div key={i} className="flex gap-2 mb-3">
-                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium" value={phone} onChange={e => {
+                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium" value={phone || ''} onChange={e => {
                         const newP = [...editingDriver.phones];
                         newP[i] = formatPhone(e.target.value);
                         setEditingDriver({...editingDriver, phones: newP});
@@ -866,7 +882,7 @@ export default function App() {
                   <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Plat</label>
                   {(editingDriver.plates || []).map((plate, i) => (
                     <div key={i} className="flex gap-2 mb-3">
-                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none uppercase font-bold tracking-wider" value={plate} onChange={e => {
+                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none uppercase font-bold tracking-wider" value={plate || ''} onChange={e => {
                         const newP = [...editingDriver.plates];
                         newP[i] = formatPlate(e.target.value);
                         setEditingDriver({...editingDriver, plates: newP});
@@ -879,7 +895,7 @@ export default function App() {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Gate</label>
-                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.gate} onChange={e => setEditingDriver({...editingDriver, gate: e.target.value})}>
+                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.gate || ''} onChange={e => setEditingDriver({...editingDriver, gate: e.target.value})}>
                     <option value="A3">Gate A3</option>
                     <option value="B">Gate B</option>
                   </select>
@@ -1288,8 +1304,8 @@ export default function App() {
                 <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-72 overflow-y-auto custom-scrollbar z-50 overflow-hidden">
                   {driversList
                     .filter(d => (!publicGateFilter || d.gate === publicGateFilter) && 
-                                 (d.nickname.toLowerCase().includes(publicSearchQuery.toLowerCase()) || 
-                                 (d.plates || [d.plate]).some(p => p.toLowerCase().includes(publicSearchQuery.toLowerCase()))))
+                                 (String(d.nickname || '').toLowerCase().includes(publicSearchQuery.toLowerCase()) || 
+                                 (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(publicSearchQuery.toLowerCase()))))
                     .map(d => (
                       <div 
                         key={d.id} 
@@ -1319,7 +1335,7 @@ export default function App() {
                         </div>
                       </div>
                   ))}
-                  {driversList.filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (d.nickname.toLowerCase().includes(publicSearchQuery.toLowerCase()) || (d.plates || [d.plate]).some(p => p.toLowerCase().includes(publicSearchQuery.toLowerCase())))).length === 0 && (
+                  {driversList.filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (String(d.nickname || '').toLowerCase().includes(publicSearchQuery.toLowerCase()) || (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(publicSearchQuery.toLowerCase())))).length === 0 && (
                     <div className="p-5 text-center text-sm font-bold text-gray-400">Tiada padanan / 无匹配结果</div>
                   )}
                 </div>
@@ -1598,7 +1614,7 @@ export default function App() {
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Phone size={10} className="mr-1" /> Telefon</div>
                           <div className="flex flex-col gap-1">
                             {(driver.phones || [driver.phone]).filter(Boolean).map((ph, idx) => (
-                               <a key={idx} href={`tel:${ph.replace(/\s/g, '')}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
+                               <a key={idx} href={`tel:${String(ph).replace(/\s/g, '')}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
                                  {ph}
                                </a>
                             ))}

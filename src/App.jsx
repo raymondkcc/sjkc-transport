@@ -8,10 +8,10 @@ import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- FORMATTER FUNCTIONS ---
 const formatIC = (val) => {
-  let cleaned = val.replace(/\D/g, ''); // 只保留数字
-  if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); // 限制最多 12 位
+  let cleaned = val.replace(/\D/g, ''); 
+  if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); 
   if (cleaned.length > 8) {
-    return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; // 格式化为 123456-12-3456
+    return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; 
   } else if (cleaned.length > 6) {
     return `${cleaned.slice(0, 6)}-${cleaned.slice(6)}`;
   }
@@ -50,7 +50,7 @@ const formatTimestamp = (ts) => {
 
 // --- TRANSCRIBED EXCEL DRIVERS DATA (Pre-formatted & Merged) ---
 const excelDrivers = [
-  // Gate A3 (Merged Duplicates)
+  // Gate A3
   { nickname: "Uncle Ong", plates: ["WHP 8890"], gate: "A3", phones: ["012 6569825"], fullName: "ONG SEE KIM" },
   { nickname: "Aunty Kuan", plates: ["WSW 6076"], gate: "A3", phones: ["012 3913357"], fullName: "YAP SIEW KEAN" },
   { nickname: "Emily", plates: ["VHV 9616", "WA 2834Y", "WWF 9616"], gate: "A3", phones: ["016 8101372"], fullName: "YEONG LAI KIN" },
@@ -152,7 +152,6 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               handleChange('kelas', ''); 
               handleChange('name', ''); 
               
-              // Auto-fill session based on year
               if (['1', '2', '3'].includes(selectedYear)) {
                 handleChange('session', 'afternoon');
               } else if (['4', '5', '6'].includes(selectedYear)) {
@@ -315,18 +314,14 @@ export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   
-  // Drivers State (Manageable in Admin)
   const [driversList, setDriversList] = useState([]);
-
-  // Admin State
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress' | 'drivers'
+  const [adminTab, setAdminTab] = useState('submissions'); 
   const [expandedClass, setExpandedClass] = useState(null);
   const [adminDriverSearch, setAdminDriverSearch] = useState(''); 
 
-  // Global driver form state
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
   
   const [submissions, setSubmissions] = useState([]);
@@ -335,18 +330,15 @@ export default function App() {
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
   const [isImporting, setIsImporting] = useState(false); 
   
-  // Public Driver List State
   const [publicGateFilter, setPublicGateFilter] = useState('');
   const [publicSearchQuery, setPublicSearchQuery] = useState('');
   const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
 
-  // Modals State (Delete & Edit)
   const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
   const [deleteDriverId, setDeleteDriverId] = useState(null);
   const [editingDriver, setEditingDriver] = useState(null);
   const [editingSub, setEditingSub] = useState(null);
 
-  // Form State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [numKids, setNumKids] = useState(1);
   const [parentInfo, setParentInfo] = useState({ name: '', ic: '', phone: '', relation: '', address: '' });
@@ -354,15 +346,16 @@ export default function App() {
   const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
   const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
 
-  // Driver Registration Form State
   const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
 
-  // Firebase Fetching States
   const [availableClasses, setAvailableClasses] = useState({});
   const [studentsDict, setStudentsDict] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
-  // Configure Chrome Tab Header
+  // LAZY LOAD FLAGS - Prevents re-fetching if we already have it
+  const [hasFetchedDrivers, setHasFetchedDrivers] = useState(false);
+  const [hasFetchedSubmissions, setHasFetchedSubmissions] = useState(false);
+
   useEffect(() => {
     document.title = "SJKC Sin Ming Transport System";
   }, []);
@@ -370,21 +363,18 @@ export default function App() {
   // Global Listener for Driver Form Status
   useEffect(() => {
     const configRef = doc(db, "app_settings", "config");
-    
-    // onSnapshot listens for changes in real-time
     const unsubscribe = onSnapshot(configRef, (docSnap) => {
       if (docSnap.exists()) {
-        setIsDriverFormOpen(docSnap.data().isDriverFormOpen !== false); // Defaults to true if undefined
+        setIsDriverFormOpen(docSnap.data().isDriverFormOpen !== false); 
       }
     }, (error) => {
       console.error("Error listening to global form state:", error);
     });
-
-    return () => unsubscribe(); // Cleanup listener on unmount
+    return () => unsubscribe(); 
   }, []);
 
-  // Function to fetch drivers from DB (with LocalStorage Cache!)
   const fetchDriversList = async (forceRefresh = false) => {
+    if (hasFetchedDrivers && !forceRefresh) return;
     try {
       const DRIVER_CACHE_KEY = 'sjkc_drivers_cache';
       const DRIVER_CACHE_TIME = 'sjkc_drivers_cache_time';
@@ -392,10 +382,11 @@ export default function App() {
       if (!forceRefresh) {
         const cached = localStorage.getItem(DRIVER_CACHE_KEY);
         const cacheTime = localStorage.getItem(DRIVER_CACHE_TIME);
-        // 缓存有效时间：1 小时 (1 hour)
-        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 60) {
+        // OPTIMIZATION: Drivers cache increased to 24 hours (86400000 ms)
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 86400000) {
           setDriversList(JSON.parse(cached));
-          return; // 使用缓存，停止向 Firebase 发送请求，节省额度！
+          setHasFetchedDrivers(true);
+          return; 
         }
       }
 
@@ -406,8 +397,8 @@ export default function App() {
       });
       fetchedDrivers.sort((a, b) => a.nickname.localeCompare(b.nickname));
       setDriversList(fetchedDrivers);
+      setHasFetchedDrivers(true);
       
-      // 更新缓存
       localStorage.setItem(DRIVER_CACHE_KEY, JSON.stringify(fetchedDrivers));
       localStorage.setItem(DRIVER_CACHE_TIME, Date.now().toString());
 
@@ -416,8 +407,8 @@ export default function App() {
     }
   };
 
-  // 2. Fetch Submissions Logic (Global for duplicate checking)
   const fetchSubmissions = async (forceRefresh = false) => {
+    if (hasFetchedSubmissions && !forceRefresh) return;
     setIsFetchingAdmin(true);
     try {
       const SUB_CACHE_KEY = 'sjkc_subs_cache';
@@ -426,9 +417,10 @@ export default function App() {
       if (!forceRefresh) {
         const cached = localStorage.getItem(SUB_CACHE_KEY);
         const cacheTime = localStorage.getItem(SUB_CACHE_TIME);
-        // 缓存有效时间：5 分钟 (5 minutes for public visitors to save quota)
-        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 5) {
+        // OPTIMIZATION: Public cache increased to 1 hour (3600000 ms). 
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
           setSubmissions(JSON.parse(cached));
+          setHasFetchedSubmissions(true);
           setIsFetchingAdmin(false);
           return; 
         }
@@ -441,6 +433,7 @@ export default function App() {
       });
       subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
       setSubmissions(subs);
+      setHasFetchedSubmissions(true);
       
       localStorage.setItem(SUB_CACHE_KEY, JSON.stringify(subs));
       localStorage.setItem(SUB_CACHE_TIME, Date.now().toString());
@@ -451,7 +444,7 @@ export default function App() {
     }
   };
 
-  // 1. Initialization (Auth + Fetching data)
+  // INITIALIZATION - Removed massive fetches from here!
   useEffect(() => {
     if (!localStorage.getItem('hideTransportDisclaimer')) {
       setShowDisclaimer(true);
@@ -462,8 +455,6 @@ export default function App() {
       try {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
-        await fetchDriversList(); // 会优先使用缓存
-        await fetchSubmissions(); // Fetch submissions to prevent duplicates (uses 5 min cache)
       } catch (authErr) {
         console.error("Transport DB Auth Error:", authErr);
       }
@@ -479,18 +470,16 @@ export default function App() {
         const STUDENT_CACHE_KEY = 'sjkc_students_cache';
         const STUDENT_CACHE_TIME = 'sjkc_students_cache_time';
 
-        // 检查学生名单的本地缓存（缓存 24 小时，极大节省 Firebase Reads 额度）
         const cachedStudents = localStorage.getItem(STUDENT_CACHE_KEY);
         const cachedTime = localStorage.getItem(STUDENT_CACHE_TIME);
-        if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
+        if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 86400000) {
            const { tempClasses, tempStudents } = JSON.parse(cachedStudents);
            setAvailableClasses(tempClasses);
            setStudentsDict(tempStudents);
            setIsLoadingStudents(false);
-           return; // 命中缓存，停止向下执行，不调用 Firebase
+           return; 
         }
 
-        // 如果没有缓存，则连接 Kehadiran 数据库读取
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
@@ -522,7 +511,6 @@ export default function App() {
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
 
-          // 写入本地缓存，留待下次使用
           localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify({ tempClasses, tempStudents }));
           localStorage.setItem(STUDENT_CACHE_TIME, Date.now().toString());
         }
@@ -535,28 +523,31 @@ export default function App() {
     initDatabasesAndFetch();
   }, []);
 
+  // OPTIMIZATION: Lazy Load exactly when needed
   useEffect(() => {
-    if (view === 'admin' && isAdmin) {
-      fetchSubmissions(true); // Admin 强制刷新，跳过缓存
-      fetchDriversList(true); // Admin 强制刷新司机列表
+    if (view === 'parentForm') {
+      fetchDriversList();
+      fetchSubmissions(); 
+    } else if (view === 'driverForm' || view === 'driverList') {
+      fetchDriversList();
+    } else if (view === 'admin' && isAdmin) {
+      fetchSubmissions(true); 
+      fetchDriversList(true); 
     }
   }, [view, isAdmin]);
 
-  // Handle Importing the Excel Data
   const handleImportExcelDrivers = async () => {
     if (driversList.length > 0) {
-      setAlertMessage("Operasi gagal. Data pemandu telah pun diimport / wujud. \n 操作失败，数据已被导入或已存在。");
+      setAlertMessage("Operasi gagal. Data pemandu telah pun diimport / wujud.");
       return;
     }
-
-    if(!window.confirm("Adakah anda pasti mahu mengimport 40 orang pemandu? Pastikan pangkalan data 'drivers' kosong untuk mengelakkan pertindihan.\n\n您确定要导入40名司机吗？请确保数据库是空的，以免重复。")) {
-      return;
-    }
+    if(!window.confirm("Adakah anda pasti mahu mengimport 40 orang pemandu?")) return;
     
     setIsImporting(true);
     try {
+      const addedDrivers = [];
       for (const driver of excelDrivers) {
-        await addDoc(collection(db, "drivers"), {
+        const docRef = await addDoc(collection(db, "drivers"), {
           fullName: driver.fullName,
           nickname: driver.nickname,
           phones: driver.phones,
@@ -564,18 +555,19 @@ export default function App() {
           gate: driver.gate,
           createdAt: serverTimestamp()
         });
+        addedDrivers.push({ id: docRef.id, ...driver });
       }
-      setAlertMessage("Semua 40 Pemandu telah berjaya diimport! \n 40位司机已成功导入！");
-      await fetchDriversList(true); // 强制刷新
+      setAlertMessage("Semua 40 Pemandu telah berjaya diimport!");
+      // OPTIMIZATION: Update local state instead of re-fetching
+      setDriversList([...addedDrivers, ...driversList].sort((a, b) => a.nickname.localeCompare(b.nickname)));
     } catch (err) {
       console.error("Error importing drivers:", err);
-      setAlertMessage("Ralat semasa import. Sila semak Firestore Rules (memerlukan kebenaran 'create').\n 导入失败，请检查规则是否允许 'create'。");
+      setAlertMessage("Ralat semasa import. Sila semak Firestore Rules.");
     } finally {
       setIsImporting(false);
     }
   };
 
-  // Form Handlers
   const handleNumKidsChange = (n) => {
     setNumKids(n);
     setChildrenInfo(prev => {
@@ -595,13 +587,12 @@ export default function App() {
 
   const handleParentSubmit = async () => {
     if (!parentInfo.name || !parentInfo.phone) {
-      setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga. \n 请至少填写监护人姓名与电话号码。");
+      setAlertMessage("Sila isikan sekurang-kurangnya Nama dan No. Telefon penjaga.");
       return;
     }
-
     const hasIncompleteChild = childrenInfo.some(c => !c.year || !c.kelas || !c.name || !c.arriveGate || !c.leaveGate);
     if(hasIncompleteChild) {
-      setAlertMessage("Sila lengkapkan maklumat bagi setiap anak. \n 请完善每个孩子的表格信息。");
+      setAlertMessage("Sila lengkapkan maklumat bagi setiap anak.");
       return;
     }
     
@@ -610,11 +601,10 @@ export default function App() {
       const docRef = await addDoc(collection(db, "transport_submissions"), {
         parent: parentInfo,
         children: childrenInfo,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp() // We leave this as server time, will display nicely in admin later
       });
       
-      // Update local submissions array immediately to block duplicate entry
-      const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo };
+      const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo, createdAt: new Date() };
       const updatedSubs = [newSub, ...submissions];
       setSubmissions(updatedSubs);
       localStorage.setItem('sjkc_subs_cache', JSON.stringify(updatedSubs));
@@ -626,13 +616,12 @@ export default function App() {
       handleBack();
     } catch (error) {
       console.error("Error saving document: ", error);
-      setAlertMessage("Ralat semasa menghantar. Sila cuba lagi. \n 提交时发生错误，请重试。");
+      setAlertMessage("Ralat semasa menghantar. Sila cuba lagi.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Driver Submission Dynamic Arrays Handlers
   const handleUpdateDriverPhones = (index, val) => {
     const newArr = [...driverInfo.phones];
     newArr[index] = formatPhone(val);
@@ -649,13 +638,12 @@ export default function App() {
   const handleAddDriverPlate = () => setDriverInfo({...driverInfo, plates: [...driverInfo.plates, '']});
   const handleRemoveDriverPlate = (index) => setDriverInfo({...driverInfo, plates: driverInfo.plates.filter((_, i) => i !== index)});
 
-  // Driver Submit Handler
   const handleDriverSubmit = async () => {
     const cleanedPhones = driverInfo.phones.filter(p => p.trim() !== '');
     const cleanedPlates = driverInfo.plates.filter(p => p.trim() !== '');
 
     if (!driverInfo.fullName || !driverInfo.nickname || !driverInfo.gate || cleanedPhones.length === 0 || cleanedPlates.length === 0) {
-       setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Telefon & Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，电话与门均为必填）。");
+       setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Telefon & Gate wajib diisi).");
        return;
     }
     
@@ -664,19 +652,18 @@ export default function App() {
 
     const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(p.replace(/\s/g, '')));
     if (duplicatePlate) {
-      setAlertMessage(`Pendaftaran ditolak. Plat kereta ${duplicatePlate} telah didaftarkan sebelum ini.\n注册拒绝。车牌 ${duplicatePlate} 已经被别人注册过了。`);
+      setAlertMessage(`Pendaftaran ditolak. Plat kereta ${duplicatePlate} telah didaftarkan sebelum ini.`);
       return;
     }
-
     const duplicatePhone = cleanedPhones.find(p => flatPhones.includes(p.replace(/\s/g, '')));
     if (duplicatePhone) {
-      setAlertMessage(`Pendaftaran ditolak. No Telefon ${duplicatePhone} telah didaftarkan sebelum ini.\n注册拒绝。电话号码 ${duplicatePhone} 已经被别人注册过了。`);
+      setAlertMessage(`Pendaftaran ditolak. No Telefon ${duplicatePhone} telah didaftarkan sebelum ini.`);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "drivers"), {
+      const docRef = await addDoc(collection(db, "drivers"), {
         fullName: driverInfo.fullName,
         nickname: driverInfo.nickname,
         gate: driverInfo.gate,
@@ -684,19 +671,33 @@ export default function App() {
         plates: cleanedPlates,
         createdAt: serverTimestamp()
       });
+      
+      // OPTIMIZATION: Update local state instead of re-fetching
+      const newDriver = {
+        id: docRef.id,
+        fullName: driverInfo.fullName,
+        nickname: driverInfo.nickname,
+        gate: driverInfo.gate,
+        phones: cleanedPhones,
+        plates: cleanedPlates,
+        createdAt: new Date()
+      };
+      
+      const newDriverList = [...driversList, newDriver].sort((a, b) => a.nickname.localeCompare(b.nickname));
+      setDriversList(newDriverList);
+      localStorage.setItem('sjkc_drivers_cache', JSON.stringify(newDriverList));
+
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
       setDriverInfo({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
-      await fetchDriversList(true); // 新注册，强制刷新缓存
       handleBack();
     } catch (error) {
       console.error("Error saving driver: ", error);
-      setAlertMessage("Ralat semasa menghantar. Sila semak Rules Firebase. \n 提交时发生错误，请重试。");
+      setAlertMessage("Ralat semasa menghantar. Sila semak Rules Firebase.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Editing Handlers for Admin
   const handleSaveDriverEdit = async () => {
     try {
       const cleanedPhones = editingDriver.phones.filter(p => p.trim() !== '');
@@ -708,12 +709,22 @@ export default function App() {
         phones: cleanedPhones,
         plates: cleanedPlates
       });
+      
+      // OPTIMIZATION: Update local state instead of re-fetching entire list
+      setDriversList(prev => prev.map(d => d.id === editingDriver.id ? {
+         ...d, 
+         fullName: editingDriver.fullName, 
+         nickname: editingDriver.nickname, 
+         gate: editingDriver.gate, 
+         phones: cleanedPhones, 
+         plates: cleanedPlates
+      } : d));
+      
       setAlertMessage("Data pemandu berjaya dikemas kini! \n 司机资料更新成功！");
       setEditingDriver(null);
-      await fetchDriversList(true); // 修改了数据，强制刷新缓存
     } catch(e) {
       console.error("Error updating driver: ", e);
-      setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
+      setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'.");
     }
   };
 
@@ -723,23 +734,25 @@ export default function App() {
         parent: editingSub.parent,
         children: editingSub.children
       });
+      
+      // OPTIMIZATION: Update local state instead of re-fetching 500+ documents
+      setSubmissions(prev => prev.map(s => s.id === editingSub.id ? editingSub : s));
+      
       setAlertMessage("Rekod berjaya dikemas kini! \n 记录更新成功！");
       setEditingSub(null);
-      fetchSubmissions(true);
     } catch(e) {
       console.error("Error updating submission: ", e);
-      setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
+      setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'.");
     }
   };
 
-  // Admin Login Handler
   const handleAdminLogin = (e) => {
     e.preventDefault();
     const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
     if (adminPwd === correctPassword) {
       setIsAdmin(true);
       setView('admin');
-      setAdminTab('submissions'); // Default tab
+      setAdminTab('submissions'); 
       setAdminModalOpen(false);
       setAdminPwd('');
     } else {
@@ -747,34 +760,30 @@ export default function App() {
     }
   };
 
-  // Global Toggle Handler for Admin
   const handleToggleDriverForm = async () => {
     const newState = !isDriverFormOpen;
-    // Optimistically update UI
     setIsDriverFormOpen(newState);
-
     try {
       await setDoc(doc(db, "app_settings", "config"), { 
         isDriverFormOpen: newState 
-      }, { merge: true }); // Merge prevents crash if doc doesn't exist yet
-      
-      setAlertMessage(`Pendaftaran Pemandu kini ${newState ? 'DIBUKA' : 'DITUTUP'}. \n 司机注册通道已${newState ? '开启' : '关闭'}。`);
+      }, { merge: true }); 
+      setAlertMessage(`Pendaftaran Pemandu kini ${newState ? 'DIBUKA' : 'DITUTUP'}.`);
     } catch (error) {
       console.error("Error toggling driver form:", error);
-      // Revert local state if Firebase fails
       setIsDriverFormOpen(!newState);
-      setAlertMessage("Ralat: Gagal menukar status. Pastikan Firestore Rules membenarkan 'write' ke koleksi 'app_settings'. \n 错误：无法更改状态，请检查数据库权限。");
+      setAlertMessage("Ralat: Gagal menukar status. Pastikan Firestore Rules membenarkan 'write' ke koleksi 'app_settings'.");
     }
   };
 
   const handleDeleteSubmission = async (id) => {
     try {
       await deleteDoc(doc(db, "transport_submissions", id));
+      // State is updated correctly here without re-fetching!
       setSubmissions(prev => prev.filter(s => s.id !== id));
       setDeleteSubmissionId(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
-      setAlertMessage("Gagal memadam rekod. \n 无法删除记录，请检查数据库权限。");
+      setAlertMessage("Gagal memadam rekod.");
       setDeleteSubmissionId(null);
     }
   };
@@ -783,13 +792,12 @@ export default function App() {
     if (!deleteDriverId) return;
     try {
       await deleteDoc(doc(db, "drivers", deleteDriverId));
+      // State updated correctly, removed the bad fetchDriversList(true) call
       setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
       setDeleteDriverId(null);
-      // 同时更新缓存，以免重新读取到被删除的司机
-      await fetchDriversList(true); 
     } catch (error) {
       console.error("Error deleting driver: ", error);
-      setAlertMessage("Gagal memadam pemandu. Sila semak Firestore Rules. \n 无法删除司机，请检查数据库权限。");
+      setAlertMessage("Gagal memadam pemandu. Sila semak Firestore Rules.");
       setDeleteDriverId(null);
     }
   };
@@ -805,7 +813,6 @@ export default function App() {
     else setView('home');
   };
 
-  // Filter Submissions for Admin View
   const filteredSubmissions = submissions.filter(sub => {
     const q = searchQuery.toLowerCase();
     const matchesQuery = !q || 
@@ -822,11 +829,9 @@ export default function App() {
       
       return arrMatch || leaveMatch;
     });
-
     return matchesQuery && matchesDriver;
   });
 
-  // Filter Drivers for Admin View
   const filteredAdminDrivers = driversList.filter(d => {
     const q = adminDriverSearch.toLowerCase();
     if (!q) return true;
@@ -837,7 +842,6 @@ export default function App() {
     return matchNickname || matchFullName || matchPlate || matchPhone;
   });
 
-  // --- CALCULATION FOR CLASS PROGRESS & PREVENT DUPLICATES ---
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
     submissions.forEach(sub => {
@@ -871,13 +875,11 @@ export default function App() {
         });
       });
     });
-
     return { classStats, submittedStudentsSet };
   };
 
   const { classStats: progressStats, submittedStudentsSet } = getProgressStats();
   
-  // Set to avoid selecting same child in different dropdowns of the same form
   const currentSelectedStudentsSet = new Set();
   childrenInfo.forEach(c => {
     if (c.year && c.kelas && c.name) {
@@ -889,7 +891,6 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 selection:bg-blue-200 pb-12 overflow-x-hidden">
       {showDisclaimer && <DisclaimerPopup onAccept={() => setShowDisclaimer(false)} />}
       
-      {/* Alert Modal */}
       {alertMessage && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out text-center">
@@ -899,7 +900,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Admin: Edit Driver Modal */}
       {editingDriver && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
@@ -962,7 +962,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Admin: Edit Submission Modal */}
       {editingSub && (
         <div className="fixed inset0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out custom-scrollbar">
@@ -1034,7 +1033,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete Submission Confirmation Modal */}
       {deleteSubmissionId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
@@ -1051,7 +1049,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Delete Driver Confirmation Modal */}
       {deleteDriverId && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
@@ -1068,7 +1065,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Admin Login Modal */}
       {adminModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out">
@@ -1089,7 +1085,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Navigation Header */}
       {view !== 'home' && view !== 'admin' && (
         <div className="bg-white/80 backdrop-blur-lg shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-20 border-b border-gray-200 transition-all duration-300">
           <button onClick={handleBack} className="text-blue-600 font-bold flex items-center bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors duration-300 group">
@@ -1105,14 +1100,12 @@ export default function App() {
       {view === 'home' && (
         <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 flex flex-col items-center justify-center p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-500 ease-out">
           
-          {/* Lava Lamp Background Elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
             <div className="absolute -top-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full bg-amber-300/50 mix-blend-multiply filter blur-[80px] animate-pulse" style={{ animationDuration: '6s' }}></div>
             <div className="absolute top-1/4 -right-1/4 w-[70vw] h-[70vw] rounded-full bg-yellow-200/50 mix-blend-multiply filter blur-[100px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
             <div className="absolute -bottom-1/4 left-1/4 w-[80vw] h-[80vw] rounded-full bg-orange-300/40 mix-blend-multiply filter blur-[120px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }}></div>
           </div>
 
-          {/* Background decorative icons */}
           <Bus size={160} className="absolute top-10 left-[-30px] text-yellow-600/20 rotate-[-15deg] animate-pulse duration-[4000ms] z-0" />
           <Car size={120} className="absolute bottom-20 right-[-20px] text-yellow-600/20 animate-pulse duration-[3000ms] z-0" />
           
@@ -1150,7 +1143,6 @@ export default function App() {
                 </div>
                 <div className="text-sm font-medium text-gray-500 mt-0.5">司机注册 / 更新表格</div>
                 
-                {/* NEW WARNING MESSAGE */}
                 <div className="mt-3.5 bg-orange-50 p-3.5 rounded-xl border border-orange-100/80 group-hover:border-orange-200 transition-colors">
                   <p className="text-[11px] font-bold text-orange-800 leading-relaxed text-justify mb-1.5">
                     Bahagian ini perlu diisi oleh pemandu pintu transporter B dan A3 yang berdaftar dengan pihak sekolah saja.
@@ -1258,7 +1250,6 @@ export default function App() {
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pendaftaran Pemandu</h2>
             <p className="text-gray-500 font-bold mt-1 tracking-wide">司机注册与资料更新表格</p>
 
-            {/* NEW WARNING MESSAGE */}
             <div className="mt-6 bg-orange-50 text-orange-800 p-4.5 rounded-2xl border border-orange-200 shadow-sm inline-block text-left max-w-lg mx-auto">
               <div className="flex items-start gap-3">
                 <ShieldAlert size={22} className="text-orange-600 flex-shrink-0 mt-0.5" />
@@ -1293,7 +1284,6 @@ export default function App() {
                 <p className="text-xs text-gray-400 mt-2 font-medium">Nama ini akan dipaparkan dalam senarai awam.</p>
               </div>
 
-              {/* Dynamic Phones Input */}
               <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
                 {driverInfo.phones.map((phone, i) => (
@@ -1305,7 +1295,6 @@ export default function App() {
                 <button type="button" onClick={handleAddDriverPhone} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors active:scale-95"><PlusCircle size={14} className="mr-1.5"/> Add More Phone</button>
               </div>
 
-              {/* Dynamic Plates Input */}
               <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
                 {driverInfo.plates.map((plate, i) => (
@@ -1346,9 +1335,7 @@ export default function App() {
             <p className="text-gray-500 font-bold mt-1 tracking-wide">载送方公共列表</p>
           </div>
           
-          {/* NEW FILTER BAR */}
           <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 mb-8 z-20 relative max-w-2xl mx-auto">
-            {/* Gate Filter */}
             <select 
               className="w-full md:w-1/3 p-4 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 outline-none font-bold text-gray-700 transition-all cursor-pointer"
               value={publicGateFilter}
@@ -1359,7 +1346,6 @@ export default function App() {
               <option value="B">Gate B</option>
             </select>
 
-            {/* Driver Jump-to Dropdown */}
             <div className="relative w-full md:w-2/3">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search size={20} className="text-gray-400" />
@@ -1420,7 +1406,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* LIST RENDER */}
           <div className={`grid grid-cols-1 ${publicGateFilter ? 'md:grid-cols-1 max-w-3xl mx-auto' : 'md:grid-cols-2'} gap-8 w-full`}>
             {(!publicGateFilter || publicGateFilter === 'A3') && (
               <div className="animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
@@ -1494,7 +1479,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* ADMIN TABS NAVIGATION */}
           <div className="flex flex-wrap gap-4 mb-8">
             <button 
               onClick={() => setAdminTab('submissions')} 
@@ -1519,7 +1503,6 @@ export default function App() {
           {adminTab === 'submissions' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
               <div className="lg:col-span-4 space-y-6 h-fit">
-                {/* Search Controls */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
                   <h3 className="font-extrabold text-lg mb-5 flex items-center text-gray-900"><Search size={20} className="mr-2.5 text-blue-500"/> Carian / 过滤</h3>
                   <input type="text" placeholder="Cari nama ibu bapa, IC, murid..." className="w-full p-3.5 border border-gray-200 rounded-xl mb-4 bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
@@ -1538,7 +1521,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Submissions List */}
               <div className="lg:col-span-8 space-y-5">
                 {isFetchingAdmin ? (
                   <div className="flex flex-col items-center justify-center p-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -1555,7 +1537,6 @@ export default function App() {
                     <div key={sub.id} className="bg-white p-6 rounded-3xl shadow-sm hover:shadow-md border border-gray-100 relative overflow-hidden transition-all duration-300 group">
                       <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-400 to-indigo-500 opacity-80"></div>
                       
-                      {/* Header: Parent Info & Delete */}
                       <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
                         <div>
                           <h4 className="font-extrabold text-xl text-gray-900 tracking-tight flex items-center">
@@ -1577,7 +1558,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Children List */}
                       <div className="space-y-3">
                         {(sub.children || []).map((c, i) => {
                           const actualLeaveDriver = c.sameDriver ? c.arriveDriver : c.leaveDriver;
@@ -1604,8 +1584,10 @@ export default function App() {
                           );
                         })}
                       </div>
-                      <div className="text-[10px] font-mono text-gray-300 mt-4 text-right">
-                        ID: {sub.id} &nbsp;|&nbsp; 🕒 {formatTimestamp(sub.createdAt)}
+                      <div className="text-[10px] font-mono text-gray-400 mt-4 text-right flex justify-end items-center gap-2">
+                        <span>ID: {sub.id}</span>
+                        <span className="text-gray-300">|</span>
+                        <span>🕒 {formatTimestamp(sub.createdAt)}</span>
                       </div>
                     </div>
                   ))
@@ -1614,10 +1596,8 @@ export default function App() {
             </div>
           )}
 
-          {/* NEW DRIVERS TAB */}
           {adminTab === 'drivers' && (
             <div className="animate-in fade-in duration-500 space-y-6">
-              {/* Header Controls for Drivers */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                  <div>
                    <h3 className="font-extrabold text-2xl text-gray-900 tracking-tight flex items-center"><Bus className="mr-3 text-purple-500" size={28} /> Pengurusan Pemandu</h3>
@@ -1636,7 +1616,6 @@ export default function App() {
                  </div>
               </div>
 
-              {/* SEARCH BAR FOR ADMIN DRIVERS */}
               <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center max-w-xl transition-shadow focus-within:shadow-md focus-within:ring-2 focus-within:ring-purple-500/20">
                  <Search size={20} className="text-gray-400 mr-3 ml-2" />
                  <input 
@@ -1648,7 +1627,6 @@ export default function App() {
                  />
               </div>
 
-              {/* Drivers Grid */}
               {isFetchingAdmin ? (
                 <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-purple-500" /></div>
               ) : filteredAdminDrivers.length === 0 ? (
@@ -1660,7 +1638,6 @@ export default function App() {
                   {filteredAdminDrivers.map(driver => (
                     <div key={driver.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
                       
-                      {/* Top Banner (Gate Color) */}
                       <div className={`p-4 flex justify-between items-start ${driver.gate === 'A3' ? 'bg-green-50' : 'bg-blue-50'}`}>
                         <div>
                           <div className={`text-xs font-black tracking-widest uppercase mb-1 ${driver.gate === 'A3' ? 'text-green-600' : 'text-blue-600'}`}>Gate {driver.gate}</div>
@@ -1680,15 +1657,12 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Body */}
                       <div className="p-5 flex-1 flex flex-col gap-4">
-                        {/* Full Name */}
                         <div className="flex items-center gap-2">
                            <div className="p-1.5 bg-gray-100 rounded-md text-gray-400"><IdCard size={14}/></div>
                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate" title={driver.fullName}>{driver.fullName || 'TIADA NAMA IC'}</span>
                         </div>
 
-                        {/* Phones List */}
                         <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Phone size={10} className="mr-1" /> Telefon</div>
                           <div className="flex flex-col gap-1">
@@ -1700,7 +1674,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Plates List */}
                         <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Car size={10} className="mr-1" /> Plat Kereta</div>
                           <div className="flex flex-wrap gap-1.5">
@@ -1726,7 +1699,6 @@ export default function App() {
           )}
 
           {adminTab === 'progress' && (
-            /* PROGRESS TAB CONTENT */
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 animate-in fade-in duration-500">
               <div className="mb-6">
                 <h3 className="font-black text-2xl text-gray-900 tracking-tight">Laporan Kemajuan Kelas</h3>
@@ -1743,7 +1715,6 @@ export default function App() {
                     
                     return (
                       <div key={stat.classKey} className={`border rounded-2xl overflow-hidden transition-all duration-300 ${expandedClass === stat.classKey ? 'border-green-400 shadow-md ring-4 ring-green-500/10' : 'border-gray-200 hover:border-green-300 hover:shadow-md'}`}>
-                        {/* Card Header (Clickable) */}
                         <div 
                           className={`p-5 cursor-pointer flex flex-col justify-between h-24 ${expandedClass === stat.classKey ? 'bg-green-50/50' : 'bg-gray-50/50 hover:bg-gray-50'}`}
                           onClick={() => setExpandedClass(expandedClass === stat.classKey ? null : stat.classKey)}
@@ -1760,12 +1731,10 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Progress Bar Line */}
                         <div className="w-full bg-gray-100 h-2">
                           <div className={`h-2 transition-all duration-1000 ease-out ${isComplete ? 'bg-green-500' : 'bg-green-400'}`} style={{ width: `${percentage}%` }}></div>
                         </div>
 
-                        {/* Expanded Dropdown Content */}
                         {expandedClass === stat.classKey && (
                           <div className="p-4 bg-white max-h-72 overflow-y-auto custom-scrollbar border-t border-green-100">
                              {stat.students.map((student, sIdx) => {

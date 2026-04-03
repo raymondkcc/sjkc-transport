@@ -178,7 +178,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <option value="">Pilih Pemandu / 请选择司机</option>
               {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => (
                 <option key={driver.id || i} value={driver.nickname}>
-                  {driver.nickname} ({(driver.plates || [driver.plate]).join(' / ')})
+                  {driver.nickname} ({(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})
                 </option>
               ))}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
@@ -232,7 +232,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
                   <option value="">Pilih Pemandu / 请选择司机</option>
                   {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => (
                     <option key={driver.id || i} value={driver.nickname}>
-                      {driver.nickname} ({(driver.plates || [driver.plate]).join(' / ')})
+                      {driver.nickname} ({(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})
                     </option>
                   ))}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
@@ -721,7 +721,7 @@ export default function App() {
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                   <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Telefon</label>
-                  {editingDriver.phones.map((phone, i) => (
+                  {(editingDriver.phones || []).map((phone, i) => (
                     <div key={i} className="flex gap-2 mb-3">
                       <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium" value={phone} onChange={e => {
                         const newP = [...editingDriver.phones];
@@ -731,12 +731,12 @@ export default function App() {
                       <button onClick={() => setEditingDriver({...editingDriver, phones: editingDriver.phones.filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
                     </div>
                   ))}
-                  <button onClick={() => setEditingDriver({...editingDriver, phones: [...editingDriver.phones, '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Phone</button>
+                  <button onClick={() => setEditingDriver({...editingDriver, phones: [...(editingDriver.phones || []), '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Phone</button>
                 </div>
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                   <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Plat</label>
-                  {editingDriver.plates.map((plate, i) => (
+                  {(editingDriver.plates || []).map((plate, i) => (
                     <div key={i} className="flex gap-2 mb-3">
                       <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none uppercase font-bold tracking-wider" value={plate} onChange={e => {
                         const newP = [...editingDriver.plates];
@@ -746,7 +746,7 @@ export default function App() {
                       <button onClick={() => setEditingDriver({...editingDriver, plates: editingDriver.plates.filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
                     </div>
                   ))}
-                  <button onClick={() => setEditingDriver({...editingDriver, plates: [...editingDriver.plates, '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Plate</button>
+                  <button onClick={() => setEditingDriver({...editingDriver, plates: [...(editingDriver.plates || []), '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Plate</button>
                 </div>
 
                 <div>
@@ -775,30 +775,30 @@ export default function App() {
             <div className="mb-6">
               <h4 className="font-extrabold text-sm text-blue-600 mb-3 uppercase tracking-wider flex items-center"><Users size={16} className="mr-1.5"/>Maklumat Penjaga</h4>
               <div className="grid grid-cols-2 gap-4">
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent.name} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} placeholder="Nama Penuh" />
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent.phone} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: e.target.value}})} placeholder="No Telefon" />
-                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent.ic} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: e.target.value}})} placeholder="No IC" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.name || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, name: e.target.value}})} placeholder="Nama Penuh" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingSub.parent?.phone || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, phone: e.target.value}})} placeholder="No Telefon" />
+                 <input className="p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all col-span-2" value={editingSub.parent?.ic || ''} onChange={(e) => setEditingSub({...editingSub, parent: {...editingSub.parent, ic: e.target.value}})} placeholder="No IC" />
               </div>
             </div>
 
             <div>
               <h4 className="font-extrabold text-sm text-blue-600 mb-3 uppercase tracking-wider flex items-center"><FileText size={16} className="mr-1.5"/>Maklumat Pelajar</h4>
-              {editingSub.children.map((c, idx) => (
+              {(editingSub.children || []).map((c, idx) => (
                  <div key={idx} className="p-4 bg-gray-50/80 rounded-2xl mb-4 border border-gray-100">
                     <div className="font-bold text-gray-800 text-sm mb-3">Anak {idx + 1}</div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                       <input className="p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold" value={c.name} onChange={(e) => {
+                       <input className="p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold" value={c.name || ''} onChange={(e) => {
                           const newChildren = [...editingSub.children];
                           newChildren[idx].name = e.target.value;
                           setEditingSub({...editingSub, children: newChildren});
                        }} placeholder="Nama Pelajar" />
                        <div className="flex gap-2">
-                         <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.year} onChange={(e) => {
+                         <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.year || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].year = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Tahun" />
-                         <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.kelas} onChange={(e) => {
+                         <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.kelas || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].kelas = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
@@ -808,18 +808,18 @@ export default function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                        <div>
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Datang ({c.arriveGate})</label>
-                         <input className="w-full p-3 border border-green-200 rounded-xl bg-green-50/30 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" value={c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver} onChange={(e) => {
+                         <input className="w-full p-3 border border-green-200 rounded-xl bg-green-50/30 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" value={c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')} onChange={(e) => {
                             const newChildren = [...editingSub.children];
-                            newChildren[idx].arriveDriver = 'others'; // Force direct string mapping
+                            newChildren[idx].arriveDriver = 'others'; 
                             newChildren[idx].arriveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Nama Pemandu" />
                        </div>
                        <div>
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Balik ({c.leaveGate})</label>
-                         <input className="w-full p-3 border border-orange-200 rounded-xl bg-orange-50/30 focus:bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" value={c.sameDriver ? (c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver) : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver)} onChange={(e) => {
+                         <input className="w-full p-3 border border-orange-200 rounded-xl bg-orange-50/30 focus:bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" value={c.sameDriver ? (c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')) : (c.leaveDriver === 'others' ? (c.leaveDriverOther || '') : (c.leaveDriver || ''))} onChange={(e) => {
                             const newChildren = [...editingSub.children];
-                            newChildren[idx].sameDriver = false; // Break the link to edit specifically
+                            newChildren[idx].sameDriver = false; 
                             newChildren[idx].leaveDriver = 'others';
                             newChildren[idx].leaveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
@@ -1233,7 +1233,11 @@ export default function App() {
                         <div className="text-[11px] font-semibold text-gray-500 mt-1">Gate: <span className="text-gray-700">{driver.gate}</span> | Plat: <span className="text-gray-700">{(driver.plates || [driver.plate]).filter(Boolean).join(', ')}</span></div>
                       </div>
                       <div className="flex items-center flex-shrink-0 opacity-50 group-hover:opacity-100 transition-opacity">
-                         <button onClick={() => setEditingDriver(driver)} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200" title="Edit Pemandu">
+                         <button onClick={() => setEditingDriver({
+                           ...driver,
+                           phones: driver.phones && driver.phones.length > 0 ? driver.phones : (driver.phone ? [driver.phone] : ['']),
+                           plates: driver.plates && driver.plates.length > 0 ? driver.plates : (driver.plate ? [driver.plate] : [''])
+                         })} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2.5 rounded-xl transition-all duration-200" title="Edit Pemandu">
                            <Pencil size={16} />
                          </button>
                          <button onClick={() => setDeleteDriverId(driver.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all duration-200" title="Padam Pemandu">

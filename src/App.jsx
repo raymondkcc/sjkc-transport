@@ -8,7 +8,8 @@ import { db, kehadiranDb, kehadiranAuth } from './firebase';
 
 // --- FORMATTER FUNCTIONS ---
 const formatIC = (val) => {
-  let cleaned = val.replace(/\D/g, ''); // 只保留数字
+  if (!val) return '';
+  let cleaned = String(val).replace(/\D/g, ''); // 只保留数字
   if (cleaned.length > 12) cleaned = cleaned.slice(0, 12); // 限制最多 12 位
   if (cleaned.length > 8) {
     return `${cleaned.slice(0, 6)}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`; // 格式化为 123456-12-3456
@@ -19,7 +20,8 @@ const formatIC = (val) => {
 };
 
 const formatPhone = (val) => {
-  let cleaned = val.replace(/\D/g, ''); 
+  if (!val) return '';
+  let cleaned = String(val).replace(/\D/g, ''); 
   if (cleaned.length > 3) {
     return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 12)}`; 
   }
@@ -27,7 +29,8 @@ const formatPhone = (val) => {
 };
 
 const formatPlate = (val) => {
-  let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, ''); 
+  if (!val) return '';
+  let cleaned = String(val).toUpperCase().replace(/[^A-Z0-9]/g, ''); 
   let match = cleaned.match(/^([A-Z]+)(\d+.*)$/); 
   if (match) {
     return `${match[1]} ${match[2]}`; 
@@ -76,6 +79,17 @@ const excelDrivers = [
   { nickname: "Uncle Paul", plates: ["WA 9759G"], gate: "B", phones: ["016 6396323"], fullName: "Khoo Kok Eng" },
 ];
 
+const mockDrivers = excelDrivers.flatMap(d => {
+  const plates = d.plates || [];
+  return plates.map(p => ({
+    nickname: d.nickname,
+    plate: p,
+    gate: d.gate,
+    hp: d.phones && d.phones.length > 0 ? d.phones[0] : "",
+    fullName: d.fullName
+  }));
+});
+
 // --- COMPONENTS ---
 
 const DisclaimerPopup = ({ onAccept }) => {
@@ -113,10 +127,12 @@ const DisclaimerPopup = ({ onAccept }) => {
   );
 };
 
-const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLoadingStudents, driversList, submittedStudentsSet, currentSelectedStudentsSet }) => {
+const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLoadingStudents, submittedStudentsSet, currentSelectedStudentsSet }) => {
   const handleChange = (field, value) => {
     onChange(index, field, value);
   };
+
+  const getDriverLabel = (nickname, plate) => `${nickname || ''} (${plate || ''})`;
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 mb-6 relative overflow-hidden group">
@@ -133,13 +149,12 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         <div>
           <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Tahun / 年级</label>
           <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
-            value={data.year} onChange={(e) => { 
+            value={data.year || ''} onChange={(e) => { 
               const selectedYear = e.target.value;
               handleChange('year', selectedYear); 
               handleChange('kelas', ''); 
               handleChange('name', ''); 
               
-              // Auto-fill session based on year
               if (['1', '2', '3'].includes(selectedYear)) {
                 handleChange('session', 'afternoon');
               } else if (['4', '5', '6'].includes(selectedYear)) {
@@ -149,15 +164,15 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               }
             }} disabled={isLoadingStudents}>
             <option value="">Pilih / 选择</option>
-            {Object.keys(availableClasses).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
+            {Object.keys(availableClasses || {}).sort().map(y => <option key={y} value={y}>Tahun {y}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Kelas / 班级</label>
           <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
-            value={data.kelas} onChange={(e) => { handleChange('kelas', e.target.value); handleChange('name', ''); }} disabled={!data.year || isLoadingStudents}>
+            value={data.kelas || ''} onChange={(e) => { handleChange('kelas', e.target.value); handleChange('name', ''); }} disabled={!data.year || isLoadingStudents}>
             <option value="">Pilih / 选择</option>
-            {data.year && availableClasses[data.year]?.map(c => <option key={c} value={c}>{c}</option>)}
+            {data.year && (availableClasses[data.year] || []).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>
@@ -165,16 +180,16 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
       <div className="mb-5">
         <label className="block text-xs font-bold mb-1.5 text-gray-600 uppercase tracking-wider">Nama Pelajar / 学生姓名</label>
         <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 hover:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none disabled:opacity-50 transition-all duration-300 cursor-pointer" 
-          value={data.name} onChange={(e) => handleChange('name', e.target.value)} disabled={!data.kelas || isLoadingStudents}>
+          value={data.name || ''} onChange={(e) => handleChange('name', e.target.value)} disabled={!data.kelas || isLoadingStudents}>
           <option value="">Pilih / 选择</option>
-          {data.kelas && studentsDict[`${data.year}-${data.kelas}`]
-            ?.filter(s => {
+          {data.kelas && (studentsDict[`${data.year}-${data.kelas}`] || [])
+            .filter(s => {
               const key = `${data.year}-${data.kelas}-${s}`;
-              const isAlreadySubmitted = submittedStudentsSet.has(key);
-              const isSelectedByOtherChild = currentSelectedStudentsSet.has(key) && data.name !== s;
+              const isAlreadySubmitted = submittedStudentsSet && submittedStudentsSet.has(key);
+              const isSelectedByOtherChild = currentSelectedStudentsSet && currentSelectedStudentsSet.has(key) && data.name !== s;
               return !isAlreadySubmitted && !isSelectedByOtherChild;
             })
-            ?.map(s => <option key={s} value={s}>{s}</option>)}
+            .map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
@@ -183,8 +198,8 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
           <span>Sesi / 班次</span>
           <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500">Auto</span>
         </label>
-        <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 font-bold outline-none cursor-not-allowed opacity-80" value={data.session} disabled={true}>
-          <option value="">- Automatik mengikut Tahun -</option>
+        <select className="w-full p-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 font-bold outline-none cursor-not-allowed opacity-80" value={data.session || ''} disabled={true}>
+          <option value="">- Automatik -</option>
           <option value="morning">Pagi / 上午班</option>
           <option value="afternoon">Petang / 下午班</option>
         </select>
@@ -198,7 +213,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         </h4>
         <div className="mb-4">
           <label className="block text-xs font-bold mb-1.5 text-green-700 uppercase tracking-wider">Gate / 校门</label>
-          <select className="w-full p-3 border border-green-200 rounded-xl bg-white hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 cursor-pointer text-green-900" value={data.arriveGate} onChange={(e) => handleChange('arriveGate', e.target.value)}>
+          <select className="w-full p-3 border border-green-200 rounded-xl bg-white hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 cursor-pointer text-green-900" value={data.arriveGate || ''} onChange={(e) => handleChange('arriveGate', e.target.value)}>
             <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A / A1 (Sendiri/自己载送)</option>
             <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
@@ -209,20 +224,16 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         {(data.arriveGate === 'A3' || data.arriveGate === 'B') && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500 pt-2">
             <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
-            <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
+            <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver || ''} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
-              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => {
-                const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
-                return (
-                  <option key={driver.id || i} value={label}>
-                    {label}
-                  </option>
-                );
+              {mockDrivers.filter(d => d.gate === data.arriveGate).map((driver, i) => {
+                const label = getDriverLabel(driver.nickname, driver.plate);
+                return <option key={i} value={label}>{label}</option>;
               })}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
-               <input type="text" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
+               <input type="text" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverOther || ''} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
             )}
           </div>
         )}
@@ -236,7 +247,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         </h4>
         <div className="mb-4">
           <label className="block text-xs font-bold mb-1.5 text-orange-700 uppercase tracking-wider">Gate / 校门</label>
-          <select className="w-full p-3 border border-orange-200 rounded-xl bg-white hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 cursor-pointer text-orange-900" value={data.leaveGate} onChange={(e) => handleChange('leaveGate', e.target.value)}>
+          <select className="w-full p-3 border border-orange-200 rounded-xl bg-white hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 cursor-pointer text-orange-900" value={data.leaveGate || ''} onChange={(e) => handleChange('leaveGate', e.target.value)}>
              <option value="">Pilih / 选择</option>
             <option value="A/A1">Gate A/A1 (Sendiri/自己载送)</option>
             <option value="A3 (Parents)">Gate A3 (Parents/父母)</option>
@@ -247,7 +258,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
 
         {data.session === 'morning' && (data.leaveGate === 'A3' || data.leaveGate === 'B') && (
           <div className="mb-5 flex items-center bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-xl border border-yellow-300 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 hover:shadow-md transition-all">
-            <input type="checkbox" id={`round2-${index}`} checked={data.isRound2} onChange={(e) => handleChange('isRound2', e.target.checked)} className="mr-3 w-5 h-5 accent-yellow-600 cursor-pointer transition-transform hover:scale-110" />
+            <input type="checkbox" id={`round2-${index}`} checked={!!data.isRound2} onChange={(e) => handleChange('isRound2', e.target.checked)} className="mr-3 w-5 h-5 accent-yellow-600 cursor-pointer transition-transform hover:scale-110" />
             <label htmlFor={`round2-${index}`} className="text-sm font-bold text-yellow-900 cursor-pointer select-none flex-1">Balik Pusingan Ke-2 / 放学第二轮载送</label>
           </div>
         )}
@@ -258,7 +269,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <label className="block text-xs font-bold text-orange-800 uppercase tracking-wider">Pemandu / 载送司机</label>
               {(data.arriveGate === 'A3' || data.arriveGate === 'B') && (
                 <label className="flex items-center text-xs font-bold text-orange-800 bg-white px-3 py-1.5 rounded-lg border border-orange-200 cursor-pointer shadow-sm hover:bg-orange-100 hover:border-orange-300 transition-all duration-300">
-                  <input type="checkbox" className="mr-2 accent-orange-600 w-4 h-4 cursor-pointer transition-transform hover:scale-110" checked={data.sameDriver} onChange={(e) => handleChange('sameDriver', e.target.checked)} />
+                  <input type="checkbox" className="mr-2 accent-orange-600 w-4 h-4 cursor-pointer transition-transform hover:scale-110" checked={!!data.sameDriver} onChange={(e) => handleChange('sameDriver', e.target.checked)} />
                   Sama / 来回一样
                 </label>
               )}
@@ -266,20 +277,16 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             
             {!data.sameDriver ? (
               <>
-                <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
+                <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver || ''} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
-                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => {
-                    const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
-                    return (
-                      <option key={driver.id || i} value={label}>
-                        {label}
-                      </option>
-                    );
+                  {mockDrivers.filter(d => d.gate === data.leaveGate).map((driver, i) => {
+                    const label = getDriverLabel(driver.nickname, driver.plate);
+                    return <option key={i} value={label}>{label}</option>;
                   })}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
-                   <input type="text" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
+                   <input type="text" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverOther || ''} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
                 )}
               </>
             ) : (
@@ -295,124 +302,85 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
   );
 };
 
-// --- MAIN APP COMPONENT ---
+// --- MAIN APP ---
 
 export default function App() {
   const [view, setView] = useState('home'); 
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   
-  // Drivers State (Manageable in Admin)
   const [driversList, setDriversList] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
 
-  // Admin State
+  // Admin states
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [adminPwd, setAdminPwd] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminTab, setAdminTab] = useState('submissions'); // 'submissions' | 'progress' | 'drivers'
+  const [adminTab, setAdminTab] = useState('submissions');
+  const [adminDriverSearch, setAdminDriverSearch] = useState('');
   const [expandedClass, setExpandedClass] = useState(null);
-  const [adminDriverSearch, setAdminDriverSearch] = useState(''); // NEW
 
+  // Form states
   const [isDriverFormOpen, setIsDriverFormOpen] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterDriver, setFilterDriver] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [numKids, setNumKids] = useState(1);
+  const [parentInfo, setParentInfo] = useState({ name: '', ic: '', phone: '', relation: '', address: '' });
+  const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
+  const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
+
+  // Firebase loading states
+  const [availableClasses, setAvailableClasses] = useState({});
+  const [studentsDict, setStudentsDict] = useState({});
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [isFetchingAdmin, setIsFetchingAdmin] = useState(false);
-  const [isImporting, setIsImporting] = useState(false); 
-  
-  // Public Driver List State
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Edit / Delete states
+  const [editingDriver, setEditingDriver] = useState(null);
+  const [editingSub, setEditingSub] = useState(null);
+  const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
+  const [deleteDriverId, setDeleteDriverId] = useState(null);
+
+  // Public Filter state
   const [publicGateFilter, setPublicGateFilter] = useState('');
   const [publicSearchQuery, setPublicSearchQuery] = useState('');
   const [isDriverDropdownOpen, setIsDriverDropdownOpen] = useState(false);
 
-  // Modals State (Delete & Edit)
-  const [deleteSubmissionId, setDeleteSubmissionId] = useState(null);
-  const [deleteDriverId, setDeleteDriverId] = useState(null);
-  const [editingDriver, setEditingDriver] = useState(null);
-  const [editingSub, setEditingSub] = useState(null);
-
-  // Form State
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [numKids, setNumKids] = useState(1);
-  const [parentInfo, setParentInfo] = useState({ name: '', ic: '', phone: '', relation: '', address: '' });
-  
-  const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
-  const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
-
-  // Driver Registration Form State
-  const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
-
-  // Firebase Fetching States
-  const [availableClasses, setAvailableClasses] = useState({});
-  const [studentsDict, setStudentsDict] = useState({});
-  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
-
-  // Configure Chrome Tab Header
   useEffect(() => {
     document.title = "SJKC Sin Ming Transport System";
   }, []);
 
-  // Function to fetch drivers from DB (with LocalStorage Cache!)
-  const fetchDriversList = async (forceRefresh = false) => {
+  const fetchDriversList = async () => {
     try {
-      const DRIVER_CACHE_KEY = 'sjkc_drivers_cache';
-      const DRIVER_CACHE_TIME = 'sjkc_drivers_cache_time';
-      
-      if (!forceRefresh) {
-        const cached = localStorage.getItem(DRIVER_CACHE_KEY);
-        const cacheTime = localStorage.getItem(DRIVER_CACHE_TIME);
-        // 缓存有效时间：1 小时 (1 hour)
-        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 60) {
-          setDriversList(JSON.parse(cached));
-          return; // 使用缓存，停止向 Firebase 发送请求，节省额度！
-        }
-      }
-
       const qSnap = await getDocs(collection(db, "drivers"));
-      const fetchedDrivers = [];
-      qSnap.forEach(doc => {
-        fetchedDrivers.push({ id: doc.id, ...doc.data() });
-      });
-      fetchedDrivers.sort((a, b) => a.nickname.localeCompare(b.nickname));
-      setDriversList(fetchedDrivers);
-      
-      // 更新缓存
-      localStorage.setItem(DRIVER_CACHE_KEY, JSON.stringify(fetchedDrivers));
-      localStorage.setItem(DRIVER_CACHE_TIME, Date.now().toString());
-
+      const list = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => String(a.nickname || '').localeCompare(String(b.nickname || '')));
+      setDriversList(list);
     } catch (err) {
       console.error("Error fetching drivers from DB:", err);
     }
   };
 
-  // 2. Fetch Submissions Logic (Global for duplicate checking)
-  const fetchSubmissions = async (forceRefresh = false) => {
+  const fetchSubmissions = async () => {
     setIsFetchingAdmin(true);
     try {
-      const SUB_CACHE_KEY = 'sjkc_subs_cache';
-      const SUB_CACHE_TIME = 'sjkc_subs_cache_time';
-      
-      if (!forceRefresh) {
-        const cached = localStorage.getItem(SUB_CACHE_KEY);
-        const cacheTime = localStorage.getItem(SUB_CACHE_TIME);
-        // 缓存有效时间：5 分钟 (5 minutes for public visitors to save quota)
-        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 1000 * 60 * 5) {
-          setSubmissions(JSON.parse(cached));
-          setIsFetchingAdmin(false);
-          return; 
-        }
-      }
-
       const querySnapshot = await getDocs(collection(db, "transport_submissions"));
       const subs = [];
       querySnapshot.forEach((doc) => {
         subs.push({ id: doc.id, ...doc.data() });
       });
-      subs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-      setSubmissions(subs);
       
-      localStorage.setItem(SUB_CACHE_KEY, JSON.stringify(subs));
-      localStorage.setItem(SUB_CACHE_TIME, Date.now().toString());
+      subs.sort((a, b) => {
+        const getMs = (obj) => {
+          if (!obj) return 0;
+          if (obj.toMillis && typeof obj.toMillis === 'function') return obj.toMillis();
+          if (obj.seconds) return obj.seconds * 1000;
+          return 0;
+        };
+        return getMs(b.createdAt) - getMs(a.createdAt);
+      });
+      
+      setSubmissions(subs);
     } catch (error) {
       console.error("Error fetching submissions:", error);
     } finally {
@@ -420,19 +388,16 @@ export default function App() {
     }
   };
 
-  // 1. Initialization (Auth + Fetching data)
   useEffect(() => {
-    if (!localStorage.getItem('hideTransportDisclaimer')) {
-      setShowDisclaimer(true);
-    }
-
-    const initDatabasesAndFetch = async () => {
-      setIsLoadingStudents(true);
+    const init = async () => {
+      if (!localStorage.getItem('hideTransportDisclaimer')) setShowDisclaimer(true);
+      
       try {
         const defaultAuth = getAuth();
         await signInAnonymously(defaultAuth);
-        await fetchDriversList(); // 会优先使用缓存
-        await fetchSubmissions(); // Fetch submissions to prevent duplicates (uses 5 min cache)
+        
+        await fetchDriversList(); 
+        await fetchSubmissions(); 
       } catch (authErr) {
         console.error("Transport DB Auth Error:", authErr);
       }
@@ -445,26 +410,11 @@ export default function App() {
       }
 
       try {
-        const STUDENT_CACHE_KEY = 'sjkc_students_cache';
-        const STUDENT_CACHE_TIME = 'sjkc_students_cache_time';
-
-        // 检查学生名单的本地缓存（缓存 24 小时，极大节省 Firebase Reads 额度）
-        const cachedStudents = localStorage.getItem(STUDENT_CACHE_KEY);
-        const cachedTime = localStorage.getItem(STUDENT_CACHE_TIME);
-        if (cachedStudents && cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 60 * 24) {
-           const { tempClasses, tempStudents } = JSON.parse(cachedStudents);
-           setAvailableClasses(tempClasses);
-           setStudentsDict(tempStudents);
-           setIsLoadingStudents(false);
-           return; // 命中缓存，停止向下执行，不调用 Firebase
-        }
-
-        // 如果没有缓存，则连接 Kehadiran 数据库读取
         await signInAnonymously(kehadiranAuth);
         const docRef = doc(kehadiranDb, "artifacts/sistem-kehadiran-sm/public/data/metadata/students_index");
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
+        if (docSnap.exists() && docSnap.data()) {
           const studentArray = docSnap.data().list || [];
           const tempClasses = {};
           const tempStudents = {};
@@ -490,10 +440,6 @@ export default function App() {
 
           setAvailableClasses(tempClasses);
           setStudentsDict(tempStudents);
-
-          // 写入本地缓存，留待下次使用
-          localStorage.setItem(STUDENT_CACHE_KEY, JSON.stringify({ tempClasses, tempStudents }));
-          localStorage.setItem(STUDENT_CACHE_TIME, Date.now().toString());
         }
       } catch (error) {
         console.error("Error fetching from Kehadiran DB:", error);
@@ -501,23 +447,14 @@ export default function App() {
         setIsLoadingStudents(false);
       }
     };
-    initDatabasesAndFetch();
+    init();
   }, []);
 
-  useEffect(() => {
-    if (view === 'admin' && isAdmin) {
-      fetchSubmissions(true); // Admin 强制刷新，跳过缓存
-      fetchDriversList(true); // Admin 强制刷新司机列表
-    }
-  }, [view, isAdmin]);
-
-  // Handle Importing the Excel Data
   const handleImportExcelDrivers = async () => {
-    if (driversList.length > 0) {
+    if ((driversList || []).length > 0) {
       setAlertMessage("Operasi gagal. Data pemandu telah pun diimport / wujud. \n 操作失败，数据已被导入或已存在。");
       return;
     }
-
     if(!window.confirm("Adakah anda pasti mahu mengimport 40 orang pemandu? Pastikan pangkalan data 'drivers' kosong untuk mengelakkan pertindihan.\n\n您确定要导入40名司机吗？请确保数据库是空的，以免重复。")) {
       return;
     }
@@ -535,7 +472,7 @@ export default function App() {
         });
       }
       setAlertMessage("Semua 40 Pemandu telah berjaya diimport! \n 40位司机已成功导入！");
-      await fetchDriversList(true); // 强制刷新
+      await fetchDriversList(); 
     } catch (err) {
       console.error("Error importing drivers:", err);
       setAlertMessage("Ralat semasa import. Sila semak Firestore Rules (memerlukan kebenaran 'create').\n 导入失败，请检查规则是否允许 'create'。");
@@ -544,11 +481,10 @@ export default function App() {
     }
   };
 
-  // Form Handlers
   const handleNumKidsChange = (n) => {
     setNumKids(n);
     setChildrenInfo(prev => {
-      const newArr = [...prev];
+      const newArr = Array.isArray(prev) ? [...prev] : [];
       while(newArr.length < n) newArr.push({ ...initialChildState });
       return newArr.slice(0, n);
     });
@@ -556,8 +492,10 @@ export default function App() {
 
   const handleChildChange = (index, field, value) => {
     setChildrenInfo(prev => {
-      const newArr = [...prev];
-      newArr[index] = { ...newArr[index], [field] : value };
+      const newArr = Array.isArray(prev) ? [...prev] : [];
+      if (newArr[index]) {
+        newArr[index] = { ...newArr[index], [field] : value };
+      }
       return newArr;
     });
   };
@@ -568,7 +506,8 @@ export default function App() {
       return;
     }
 
-    const hasIncompleteChild = childrenInfo.some(c => !c.year || !c.kelas || !c.name || !c.arriveGate || !c.leaveGate);
+    const currentChildren = Array.isArray(childrenInfo) ? childrenInfo : [];
+    const hasIncompleteChild = currentChildren.some(c => !c || !c.year || !c.kelas || !c.name || !c.arriveGate || !c.leaveGate);
     if(hasIncompleteChild) {
       setAlertMessage("Sila lengkapkan maklumat bagi setiap anak. \n 请完善每个孩子的表格信息。");
       return;
@@ -576,22 +515,17 @@ export default function App() {
     
     setIsSubmitting(true);
     try {
-      const docRef = await addDoc(collection(db, "transport_submissions"), {
+      await addDoc(collection(db, "transport_submissions"), {
         parent: parentInfo,
-        children: childrenInfo,
+        children: currentChildren,
         createdAt: serverTimestamp()
       });
       
-      // Update local submissions array immediately to block duplicate entry
-      const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo };
-      const updatedSubs = [newSub, ...submissions];
-      setSubmissions(updatedSubs);
-      localStorage.setItem('sjkc_subs_cache', JSON.stringify(updatedSubs));
-
       setAlertMessage("Borang Berjaya Dihantar! \n 提交成功！");
       setParentInfo({ name: '', ic: '', phone: '', relation: '', address: '' });
       setNumKids(1);
       setChildrenInfo([{ ...initialChildState }]);
+      fetchSubmissions(); // Re-fetch fresh from DB
       handleBack();
     } catch (error) {
       console.error("Error saving document: ", error);
@@ -601,43 +535,42 @@ export default function App() {
     }
   };
 
-  // Driver Submission Dynamic Arrays Handlers
   const handleUpdateDriverPhones = (index, val) => {
-    const newArr = [...driverInfo.phones];
+    const newArr = [...(driverInfo.phones || [])];
     newArr[index] = formatPhone(val);
     setDriverInfo({...driverInfo, phones: newArr});
   }
-  const handleAddDriverPhone = () => setDriverInfo({...driverInfo, phones: [...driverInfo.phones, '']});
-  const handleRemoveDriverPhone = (index) => setDriverInfo({...driverInfo, phones: driverInfo.phones.filter((_, i) => i !== index)});
+  const handleAddDriverPhone = () => setDriverInfo({...driverInfo, phones: [...(driverInfo.phones || []), '']});
+  const handleRemoveDriverPhone = (index) => setDriverInfo({...driverInfo, phones: (driverInfo.phones || []).filter((_, i) => i !== index)});
 
   const handleUpdateDriverPlates = (index, val) => {
-    const newArr = [...driverInfo.plates];
+    const newArr = [...(driverInfo.plates || [])];
     newArr[index] = formatPlate(val);
     setDriverInfo({...driverInfo, plates: newArr});
   }
-  const handleAddDriverPlate = () => setDriverInfo({...driverInfo, plates: [...driverInfo.plates, '']});
-  const handleRemoveDriverPlate = (index) => setDriverInfo({...driverInfo, plates: driverInfo.plates.filter((_, i) => i !== index)});
+  const handleAddDriverPlate = () => setDriverInfo({...driverInfo, plates: [...(driverInfo.plates || []), '']});
+  const handleRemoveDriverPlate = (index) => setDriverInfo({...driverInfo, plates: (driverInfo.plates || []).filter((_, i) => i !== index)});
 
-  // Driver Submit Handler
   const handleDriverSubmit = async () => {
-    const cleanedPhones = driverInfo.phones.filter(p => p.trim() !== '');
-    const cleanedPlates = driverInfo.plates.filter(p => p.trim() !== '');
+    const cleanedPhones = (driverInfo.phones || []).filter(p => p && String(p).trim() !== '');
+    const cleanedPlates = (driverInfo.plates || []).filter(p => p && String(p).trim() !== '');
 
     if (!driverInfo.fullName || !driverInfo.nickname || !driverInfo.gate || cleanedPhones.length === 0 || cleanedPlates.length === 0) {
        setAlertMessage("Sila lengkapkan borang (Nama, Panggilan, Plat, Telefon & Gate wajib diisi). \n 请完善表格（全名，称呼，车牌，电话与门均为必填）。");
        return;
     }
     
-    const flatPlates = driversList.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => p.replace(/\s/g, ''));
-    const flatPhones = driversList.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => p.replace(/\s/g, ''));
+    const safeDrivers = Array.isArray(driversList) ? driversList : [];
+    const flatPlates = safeDrivers.flatMap(d => d.plates || [d.plate]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
+    const flatPhones = safeDrivers.flatMap(d => d.phones || [d.phone]).filter(Boolean).map(p => String(p).replace(/\s/g, ''));
 
-    const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(p.replace(/\s/g, '')));
+    const duplicatePlate = cleanedPlates.find(p => flatPlates.includes(String(p).replace(/\s/g, '')));
     if (duplicatePlate) {
       setAlertMessage(`Pendaftaran ditolak. Plat kereta ${duplicatePlate} telah didaftarkan sebelum ini.\n注册拒绝。车牌 ${duplicatePlate} 已经被别人注册过了。`);
       return;
     }
 
-    const duplicatePhone = cleanedPhones.find(p => flatPhones.includes(p.replace(/\s/g, '')));
+    const duplicatePhone = cleanedPhones.find(p => flatPhones.includes(String(p).replace(/\s/g, '')));
     if (duplicatePhone) {
       setAlertMessage(`Pendaftaran ditolak. No Telefon ${duplicatePhone} telah didaftarkan sebelum ini.\n注册拒绝。电话号码 ${duplicatePhone} 已经被别人注册过了。`);
       return;
@@ -655,7 +588,7 @@ export default function App() {
       });
       setAlertMessage("Pendaftaran Pemandu Berjaya Disimpan! \n 司机资料注册成功！");
       setDriverInfo({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
-      await fetchDriversList(true); // 新注册，强制刷新缓存
+      await fetchDriversList(); 
       handleBack();
     } catch (error) {
       console.error("Error saving driver: ", error);
@@ -665,11 +598,11 @@ export default function App() {
     }
   };
 
-  // Editing Handlers for Admin
   const handleSaveDriverEdit = async () => {
+    if (!editingDriver || !editingDriver.id) return;
     try {
-      const cleanedPhones = editingDriver.phones.filter(p => p.trim() !== '');
-      const cleanedPlates = editingDriver.plates.filter(p => p.trim() !== '');
+      const cleanedPhones = (editingDriver.phones || []).filter(p => p && String(p).trim() !== '');
+      const cleanedPlates = (editingDriver.plates || []).filter(p => p && String(p).trim() !== '');
       await updateDoc(doc(db, "drivers", editingDriver.id), {
         fullName: editingDriver.fullName,
         nickname: editingDriver.nickname,
@@ -679,7 +612,7 @@ export default function App() {
       });
       setAlertMessage("Data pemandu berjaya dikemas kini! \n 司机资料更新成功！");
       setEditingDriver(null);
-      await fetchDriversList(true); // 修改了数据，强制刷新缓存
+      await fetchDriversList(); 
     } catch(e) {
       console.error("Error updating driver: ", e);
       setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
@@ -687,28 +620,32 @@ export default function App() {
   };
 
   const handleSaveSubEdit = async () => {
+    if (!editingSub || !editingSub.id) return;
     try {
       await updateDoc(doc(db, "transport_submissions", editingSub.id), {
         parent: editingSub.parent,
-        children: editingSub.children
+        children: editingSub.children || []
       });
       setAlertMessage("Rekod berjaya dikemas kini! \n 记录更新成功！");
       setEditingSub(null);
-      fetchSubmissions(true);
+      fetchSubmissions();
     } catch(e) {
       console.error("Error updating submission: ", e);
       setAlertMessage("Gagal kemas kini. Pastikan Rules membenarkan 'update'. \n 更新失败，请检查数据库权限是否允许 'update'。");
     }
   };
 
-  // Admin Login Handler
+  const handleToggleForm = () => {
+    setIsDriverFormOpen(!isDriverFormOpen);
+  };
+
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    if (adminPwd === correctPassword) {
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
+    if (adminPwd === correctPassword && correctPassword) {
       setIsAdmin(true);
       setView('admin');
-      setAdminTab('submissions'); // Default tab
+      setAdminTab('submissions'); 
       setAdminModalOpen(false);
       setAdminPwd('');
     } else {
@@ -719,7 +656,7 @@ export default function App() {
   const handleDeleteSubmission = async (id) => {
     try {
       await deleteDoc(doc(db, "transport_submissions", id));
-      setSubmissions(prev => prev.filter(s => s.id !== id));
+      fetchSubmissions();
       setDeleteSubmissionId(null);
     } catch (error) {
       console.error("Error deleting document: ", error);
@@ -732,10 +669,8 @@ export default function App() {
     if (!deleteDriverId) return;
     try {
       await deleteDoc(doc(db, "drivers", deleteDriverId));
-      setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
+      fetchDriversList();
       setDeleteDriverId(null);
-      // 同时更新缓存，以免重新读取到被删除的司机
-      await fetchDriversList(true); 
     } catch (error) {
       console.error("Error deleting driver: ", error);
       setAlertMessage("Gagal memadam pemandu. Sila semak Firestore Rules. \n 无法删除司机，请检查数据库权限。");
@@ -754,20 +689,23 @@ export default function App() {
     else setView('home');
   };
 
-  // Filter Submissions for Admin View
-  const filteredSubmissions = submissions.filter(sub => {
-    const q = searchQuery.toLowerCase();
+  const safeSubmissions = Array.isArray(submissions) ? submissions : [];
+  const safeDrivers = Array.isArray(driversList) ? driversList : [];
+
+  const filteredSubmissions = safeSubmissions.filter(sub => {
+    if(!sub) return false; 
+    const q = String(searchQuery || '').toLowerCase();
     const matchesQuery = !q || 
-      (sub.parent?.name || '').toLowerCase().includes(q) || 
-      (sub.parent?.ic || '').toLowerCase().includes(q) ||
-      (sub.children || []).some(c => (c.name || '').toLowerCase().includes(q));
+      String(sub.parent?.name || '').toLowerCase().includes(q) || 
+      String(sub.parent?.ic || '').toLowerCase().includes(q) ||
+      (sub.children || []).some(c => String(c.name || '').toLowerCase().includes(q));
 
     const matchesDriver = !filterDriver || (sub.children || []).some(c => {
       const actualArrive = c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver;
       const actualLeave = c.sameDriver ? actualArrive : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver);
       
-      const arrMatch = actualArrive && (actualArrive.includes(filterDriver) || filterDriver.includes(actualArrive));
-      const leaveMatch = actualLeave && (actualLeave.includes(filterDriver) || filterDriver.includes(actualLeave));
+      const arrMatch = actualArrive && (String(actualArrive).includes(filterDriver) || filterDriver.includes(String(actualArrive)));
+      const leaveMatch = actualLeave && (String(actualLeave).includes(filterDriver) || filterDriver.includes(String(actualLeave)));
       
       return arrMatch || leaveMatch;
     });
@@ -775,33 +713,36 @@ export default function App() {
     return matchesQuery && matchesDriver;
   });
 
-  // Filter Drivers for Admin View
-  const filteredAdminDrivers = driversList.filter(d => {
-    const q = adminDriverSearch.toLowerCase();
+  const filteredAdminDrivers = safeDrivers.filter(d => {
+    if (!d) return false;
+    const q = String(adminDriverSearch || '').toLowerCase();
     if (!q) return true;
-    const matchNickname = (d.nickname || '').toLowerCase().includes(q);
-    const matchFullName = (d.fullName || '').toLowerCase().includes(q);
-    const matchPlate = (d.plates || [d.plate]).filter(Boolean).some(p => p.toLowerCase().includes(q));
-    const matchPhone = (d.phones || [d.phone]).filter(Boolean).some(p => p.replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+    const matchNickname = String(d.nickname || '').toLowerCase().includes(q);
+    const matchFullName = String(d.fullName || '').toLowerCase().includes(q);
+    const matchPlate = (d.plates || [d.plate]).filter(Boolean).some(p => String(p).toLowerCase().includes(q));
+    const matchPhone = (d.phones || [d.phone]).filter(Boolean).some(p => String(p).replace(/\s/g, '').includes(q.replace(/\s/g, '')));
     return matchNickname || matchFullName || matchPlate || matchPhone;
   });
 
-  // --- CALCULATION FOR CLASS PROGRESS & PREVENT DUPLICATES ---
   const getProgressStats = () => {
     const submittedStudentsSet = new Set();
-    submissions.forEach(sub => {
+    safeSubmissions.forEach(sub => {
+      if (!sub) return; 
       (sub.children || []).forEach(c => {
-        if (c.year && c.kelas && c.name) {
+        if (c && c.year && c.kelas && c.name) {
           submittedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);
         }
       });
     });
 
     const classStats = [];
-    Object.keys(availableClasses).sort().forEach(year => {
-      (availableClasses[year] || []).forEach(kelas => {
+    const safeClasses = availableClasses || {};
+    Object.keys(safeClasses).sort().forEach(year => {
+      const kelasList = Array.isArray(safeClasses[year]) ? safeClasses[year] : [];
+      kelasList.forEach(kelas => {
         const classKey = `${year}-${kelas}`;
-        const students = studentsDict[classKey] || [];
+        const studentsDictData = studentsDict || {};
+        const students = Array.isArray(studentsDictData[classKey]) ? studentsDictData[classKey] : [];
         const total = students.length;
         let submittedCount = 0;
         students.forEach(student => {
@@ -826,10 +767,10 @@ export default function App() {
 
   const { classStats: progressStats, submittedStudentsSet } = getProgressStats();
   
-  // Set to avoid selecting same child in different dropdowns of the same form
   const currentSelectedStudentsSet = new Set();
-  childrenInfo.forEach(c => {
-    if (c.year && c.kelas && c.name) {
+  const safeChildrenInfo = Array.isArray(childrenInfo) ? childrenInfo : [];
+  safeChildrenInfo.forEach(c => {
+    if (c && c.year && c.kelas && c.name) {
        currentSelectedStudentsSet.add(`${c.year}-${c.kelas}-${c.name}`);
     }
   });
@@ -840,7 +781,7 @@ export default function App() {
       
       {/* Alert Modal */}
       {alertMessage && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out text-center">
             <div className="text-lg font-bold mb-8 text-gray-800 whitespace-pre-line leading-relaxed">{alertMessage}</div>
             <button onClick={() => setAlertMessage('')} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3.5 rounded-2xl font-bold w-full transition-all duration-300 shadow-md hover:shadow-lg active:scale-95">OK, Faham / 好的</button>
@@ -857,23 +798,23 @@ export default function App() {
              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Penuh (IC)</label>
-                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.fullName} onChange={e => setEditingDriver({...editingDriver, fullName: e.target.value})} />
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.fullName || ''} onChange={e => setEditingDriver({...editingDriver, fullName: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nama Panggilan</label>
-                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.nickname} onChange={e => setEditingDriver({...editingDriver, nickname: e.target.value})} />
+                  <input className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.nickname || ''} onChange={e => setEditingDriver({...editingDriver, nickname: e.target.value})} />
                 </div>
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                   <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Telefon</label>
-                  {(editingDriver.phones || []).map((phone, i) => (
+                  {(editingDriver.phones || [editingDriver.phone]).filter(Boolean).map((phone, i) => (
                     <div key={i} className="flex gap-2 mb-3">
-                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium" value={phone} onChange={e => {
-                        const newP = [...editingDriver.phones];
+                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium" value={phone || ''} onChange={e => {
+                        const newP = [...(editingDriver.phones || [])];
                         newP[i] = formatPhone(e.target.value);
                         setEditingDriver({...editingDriver, phones: newP});
                       }} />
-                      <button onClick={() => setEditingDriver({...editingDriver, phones: editingDriver.phones.filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
+                      <button onClick={() => setEditingDriver({...editingDriver, phones: (editingDriver.phones || []).filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
                     </div>
                   ))}
                   <button onClick={() => setEditingDriver({...editingDriver, phones: [...(editingDriver.phones || []), '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Phone</button>
@@ -881,14 +822,14 @@ export default function App() {
 
                 <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                   <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider">No. Plat</label>
-                  {(editingDriver.plates || []).map((plate, i) => (
+                  {(editingDriver.plates || [editingDriver.plate]).filter(Boolean).map((plate, i) => (
                     <div key={i} className="flex gap-2 mb-3">
-                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none uppercase font-bold tracking-wider" value={plate} onChange={e => {
-                        const newP = [...editingDriver.plates];
+                      <input className="flex-1 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none uppercase font-bold tracking-wider" value={plate || ''} onChange={e => {
+                        const newP = [...(editingDriver.plates || [])];
                         newP[i] = formatPlate(e.target.value);
                         setEditingDriver({...editingDriver, plates: newP});
                       }} />
-                      <button onClick={() => setEditingDriver({...editingDriver, plates: editingDriver.plates.filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
+                      <button onClick={() => setEditingDriver({...editingDriver, plates: (editingDriver.plates || []).filter((_, idx) => idx !== i)})} className="p-3 text-red-400 bg-red-50/50 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all"><Trash2 size={18}/></button>
                     </div>
                   ))}
                   <button onClick={() => setEditingDriver({...editingDriver, plates: [...(editingDriver.plates || []), '']})} className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-xs font-bold flex items-center transition-colors">+ Add Plate</button>
@@ -896,7 +837,7 @@ export default function App() {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Gate</label>
-                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.gate} onChange={e => setEditingDriver({...editingDriver, gate: e.target.value})}>
+                  <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all" value={editingDriver.gate || ''} onChange={e => setEditingDriver({...editingDriver, gate: e.target.value})}>
                     <option value="A3">Gate A3</option>
                     <option value="B">Gate B</option>
                   </select>
@@ -913,7 +854,7 @@ export default function App() {
 
       {/* Admin: Edit Submission Modal */}
       {editingSub && (
-        <div className="fixed inset0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out custom-scrollbar">
             <h3 className="font-extrabold text-2xl mb-6 text-gray-900 tracking-tight">Edit Rekod / 编辑记录</h3>
             
@@ -934,18 +875,18 @@ export default function App() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                        <input className="p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold" value={c.name || ''} onChange={(e) => {
                           const newChildren = [...editingSub.children];
-                          newChildren[idx].name = e.target.value;
+                          newChildren[idx] = { ...newChildren[idx], name: e.target.value };
                           setEditingSub({...editingSub, children: newChildren});
                        }} placeholder="Nama Pelajar" />
                        <div className="flex gap-2">
                          <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.year || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
-                            newChildren[idx].year = e.target.value;
+                            newChildren[idx] = { ...newChildren[idx], year: e.target.value };
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Tahun" />
                          <input className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-semibold text-center" value={c.kelas || ''} onChange={(e) => {
                             const newChildren = [...editingSub.children];
-                            newChildren[idx].kelas = e.target.value;
+                            newChildren[idx] = { ...newChildren[idx], kelas: e.target.value };
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Kelas" />
                        </div>
@@ -955,8 +896,11 @@ export default function App() {
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Datang ({c.arriveGate})</label>
                          <input className="w-full p-3 border border-green-200 rounded-xl bg-green-50/30 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" value={c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')} onChange={(e) => {
                             const newChildren = [...editingSub.children];
-                            newChildren[idx].arriveDriver = 'others'; 
-                            newChildren[idx].arriveDriverOther = e.target.value;
+                            newChildren[idx] = { 
+                              ...newChildren[idx], 
+                              arriveDriver: 'others',
+                              arriveDriverOther: e.target.value
+                            };
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Nama Pemandu" />
                        </div>
@@ -964,9 +908,12 @@ export default function App() {
                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Balik ({c.leaveGate})</label>
                          <input className="w-full p-3 border border-orange-200 rounded-xl bg-orange-50/30 focus:bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" value={c.sameDriver ? (c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')) : (c.leaveDriver === 'others' ? (c.leaveDriverOther || '') : (c.leaveDriver || ''))} onChange={(e) => {
                             const newChildren = [...editingSub.children];
-                            newChildren[idx].sameDriver = false; 
-                            newChildren[idx].leaveDriver = 'others';
-                            newChildren[idx].leaveDriverOther = e.target.value;
+                            newChildren[idx] = {
+                              ...newChildren[idx],
+                              sameDriver: false,
+                              leaveDriver: 'others',
+                              leaveDriverOther: e.target.value
+                            };
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Nama Pemandu" />
                        </div>
@@ -1220,7 +1167,7 @@ export default function App() {
               {/* Dynamic Phones Input */}
               <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Search size={14} className="mr-1.5 text-blue-500"/>No. Telefon / 手机号码</label>
-                {driverInfo.phones.map((phone, i) => (
+                {(driverInfo.phones || []).map((phone, i) => (
                   <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
                     <input type="tel" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all duration-300 font-medium" value={phone} onChange={e => handleUpdateDriverPhones(i, e.target.value)} />
                     {i > 0 && <button type="button" onClick={() => handleRemoveDriverPhone(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
@@ -1232,7 +1179,7 @@ export default function App() {
               {/* Dynamic Plates Input */}
               <div className="bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
                 <label className="block text-xs font-bold mb-3 text-gray-600 uppercase tracking-wider flex items-center"><Car size={14} className="mr-1.5 text-orange-500"/>No. Plat Kereta / 车牌号码</label>
-                {driverInfo.plates.map((plate, i) => (
+                {(driverInfo.plates || []).map((plate, i) => (
                   <div key={i} className="flex gap-2 mb-3 animate-in fade-in zoom-in-95 duration-300">
                     <input type="text" className="flex-1 p-3.5 border border-gray-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold uppercase transition-all duration-300 tracking-wider" value={plate} onChange={e => handleUpdateDriverPlates(i, e.target.value)} />
                     {i > 0 && <button type="button" onClick={() => handleRemoveDriverPlate(i)} className="p-3 text-red-400 bg-red-50/50 border border-red-100 rounded-xl hover:bg-red-100 hover:text-red-600 transition-all active:scale-95"><Trash2 size={18}/></button>}
@@ -1303,13 +1250,13 @@ export default function App() {
               
               {isDriverDropdownOpen && (
                 <div className="absolute top-full mt-2 left-0 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl max-h-72 overflow-y-auto custom-scrollbar z-50 overflow-hidden">
-                  {driversList
+                  {mockDrivers
                     .filter(d => (!publicGateFilter || d.gate === publicGateFilter) && 
-                                 (d.nickname.toLowerCase().includes(publicSearchQuery.toLowerCase()) || 
-                                 (d.plates || [d.plate]).some(p => p.toLowerCase().includes(publicSearchQuery.toLowerCase()))))
-                    .map(d => (
+                                 (String(d.nickname || '').toLowerCase().includes((publicSearchQuery||'').toLowerCase()) || 
+                                 String(d.plate || '').toLowerCase().includes((publicSearchQuery||'').toLowerCase())))
+                    .map((d, index) => (
                       <div 
-                        key={d.id} 
+                        key={index} 
                         className="p-3.5 hover:bg-purple-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2"
                         onClick={() => {
                           setPublicSearchQuery(''); 
@@ -1318,11 +1265,12 @@ export default function App() {
                             setPublicGateFilter(d.gate);
                           }
                           setTimeout(() => {
-                            const el = document.getElementById(`driver-card-${d.id}`);
-                            if (el) {
-                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              el.classList.add('ring-4', 'ring-purple-500', 'scale-105', 'bg-purple-50/50', 'z-10');
-                              setTimeout(() => el.classList.remove('ring-4', 'ring-purple-500', 'scale-105', 'bg-purple-50/50', 'z-10'), 2000);
+                            // Find element containing this nickname
+                            const els = document.querySelectorAll(`[data-driver="${d.nickname}"]`);
+                            if (els.length > 0) {
+                              els[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              els[0].classList.add('ring-4', 'ring-purple-500', 'scale-105', 'bg-purple-50/50', 'z-10');
+                              setTimeout(() => els[0].classList.remove('ring-4', 'ring-purple-500', 'scale-105', 'bg-purple-50/50', 'z-10'), 2000);
                             }
                           }, 100);
                         }}
@@ -1330,13 +1278,11 @@ export default function App() {
                         <div className="font-extrabold text-gray-800">{d.nickname}</div>
                         <div className="flex flex-wrap gap-1.5">
                           <span className="bg-gray-100 px-2 py-0.5 rounded-md text-gray-500 font-bold text-[10px] uppercase">Gate {d.gate}</span>
-                          {(d.plates || [d.plate]).filter(Boolean).map((pl, idx) => (
-                            <span key={idx} className="bg-white px-2 py-0.5 rounded-md text-gray-700 font-mono text-[10px] font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
-                          ))}
+                          <span className="bg-white px-2 py-0.5 rounded-md text-gray-700 font-mono text-[10px] font-black tracking-wider border border-gray-200 shadow-sm">{d.plate}</span>
                         </div>
                       </div>
                   ))}
-                  {driversList.filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (d.nickname.toLowerCase().includes(publicSearchQuery.toLowerCase()) || (d.plates || [d.plate]).some(p => p.toLowerCase().includes(publicSearchQuery.toLowerCase())))).length === 0 && (
+                  {mockDrivers.filter(d => (!publicGateFilter || d.gate === publicGateFilter) && (String(d.nickname || '').toLowerCase().includes((publicSearchQuery||'').toLowerCase()) || String(d.plate || '').toLowerCase().includes((publicSearchQuery||'').toLowerCase()))).length === 0 && (
                     <div className="p-5 text-center text-sm font-bold text-gray-400">Tiada padanan / 无匹配结果</div>
                   )}
                 </div>
@@ -1352,22 +1298,19 @@ export default function App() {
                   Gate A3
                 </div>
                 <div className="space-y-4">
-                  {driversList.filter(d => d.gate === 'A3').map((driver, i) => (
-                    <div id={`driver-card-${driver.id}`} key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
+                  {mockDrivers.filter(d => d.gate === 'A3').map((driver, i) => (
+                    <div data-driver={driver.nickname} key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
                       <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-green-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
                         <Bus size={28} strokeWidth={1.5} />
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="font-extrabold text-lg text-gray-900 group-hover:text-green-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
                         <div className="flex flex-wrap gap-1.5">
-                          {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
-                            <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
-                          ))}
+                          <span className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
                         </div>
                       </div>
                     </div>
                   ))}
-                  {driversList.filter(d => d.gate === 'A3').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
                 </div>
               </div>
             )}
@@ -1378,22 +1321,19 @@ export default function App() {
                   Gate B
                 </div>
                 <div className="space-y-4">
-                  {driversList.filter(d => d.gate === 'B').map((driver, i) => (
-                    <div id={`driver-card-${driver.id}`} key={driver.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
+                  {mockDrivers.filter(d => d.gate === 'B').map((driver, i) => (
+                    <div data-driver={driver.nickname} key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group scroll-mt-24">
                       <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-2xl mr-5 flex-shrink-0 overflow-hidden border border-blue-100 shadow-inner group-hover:scale-105 transition-transform duration-300">
                         <Bus size={28} strokeWidth={1.5} />
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="font-extrabold text-lg text-gray-900 group-hover:text-blue-700 transition-colors duration-300 truncate mb-1.5">{driver.nickname}</div>
                         <div className="flex flex-wrap gap-1.5">
-                          {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
-                            <span key={idx} className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
-                          ))}
+                           <span className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-700 font-mono text-xs font-black tracking-wider border border-gray-200 shadow-sm">{driver.plate}</span>
                         </div>
                       </div>
                     </div>
                   ))}
-                  {driversList.filter(d => d.gate === 'B').length === 0 && <div className="text-sm text-gray-400 font-medium text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">Tiada pemandu.</div>}
                 </div>
               </div>
             )}
@@ -1450,9 +1390,9 @@ export default function App() {
                   <div className="relative mb-5">
                     <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                       <option value="">Semua Pemandu / 所有司机</option>
-                      {driversList.map((d) => {
-                        const label = `${d.nickname} (${(d.plates || [d.plate]).filter(Boolean).join(' / ')})`;
-                        return <option key={d.id} value={label}>{label}</option>;
+                      {mockDrivers.map((d, i) => {
+                        const label = `${d.nickname} (${d.plate})`;
+                        return <option key={i} value={label}>{label}</option>;
                       })}
                     </select>
                   </div>
@@ -1503,7 +1443,7 @@ export default function App() {
 
                       {/* Children List */}
                       <div className="space-y-3">
-                        {(sub.children || []).map((c, i) => {
+                        {getChildren(sub).map((c, i) => {
                           const actualLeaveDriver = c.sameDriver ? c.arriveDriver : c.leaveDriver;
                           const actualLeaveOther = c.sameDriver ? c.arriveDriverOther : c.leaveDriverOther;
                           
@@ -1591,8 +1531,8 @@ export default function App() {
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => setEditingDriver({
                             ...driver,
-                            phones: driver.phones && driver.phones.length > 0 ? driver.phones : (driver.phone ? [driver.phone] : ['']),
-                            plates: driver.plates && driver.plates.length > 0 ? driver.plates : (driver.plate ? [driver.plate] : [''])
+                            phones: getDriverPhones(driver),
+                            plates: getDriverPlates(driver)
                           })} className="p-1.5 bg-white text-gray-500 rounded-lg hover:text-blue-600 shadow-sm transition-colors">
                             <Pencil size={14} />
                           </button>
@@ -1614,8 +1554,8 @@ export default function App() {
                         <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Phone size={10} className="mr-1" /> Telefon</div>
                           <div className="flex flex-col gap-1">
-                            {(driver.phones || [driver.phone]).filter(Boolean).map((ph, idx) => (
-                               <a key={idx} href={`tel:${ph.replace(/\s/g, '')}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
+                            {getDriverPhones(driver).filter(Boolean).map((ph, idx) => (
+                               <a key={idx} href={`tel:${String(ph).replace(/\s/g, '')}`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1">
                                  {ph}
                                </a>
                             ))}
@@ -1626,7 +1566,7 @@ export default function App() {
                         <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Car size={10} className="mr-1" /> Plat Kereta</div>
                           <div className="flex flex-wrap gap-1.5">
-                            {(driver.plates || [driver.plate]).filter(Boolean).map((pl, idx) => (
+                            {getDriverPlates(driver).filter(Boolean).map((pl, idx) => (
                                <span key={idx} className="bg-white px-2 py-1 rounded-md text-gray-700 font-mono text-[11px] font-black tracking-wider border border-gray-200 shadow-sm">{pl}</span>
                             ))}
                           </div>
@@ -1652,7 +1592,7 @@ export default function App() {
                 <div className="flex justify-center p-10"><Loader2 size={32} className="animate-spin text-green-500" /></div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {progressStats.map(stat => {
+                  {(progressStats || []).map(stat => {
                     const percentage = stat.total > 0 ? Math.round((stat.submitted / stat.total) * 100) : 0;
                     const isComplete = percentage === 100 && stat.total > 0;
                     
@@ -1683,8 +1623,8 @@ export default function App() {
                         {/* Expanded Dropdown Content */}
                         {expandedClass === stat.classKey && (
                           <div className="p-4 bg-white max-h-72 overflow-y-auto custom-scrollbar border-t border-green-100">
-                             {stat.students.map((student, sIdx) => {
-                               const isSubbed = stat.submittedSet.has(`${stat.year}-${stat.kelas}-${student}`);
+                             {(stat.students || []).map((student, sIdx) => {
+                               const isSubbed = submittedStudentsSet && submittedStudentsSet.has(`${stat.year}-${stat.kelas}-${student}`);
                                return (
                                  <div key={sIdx} className={`text-xs font-bold p-3 mb-2 rounded-xl flex justify-between items-center border transition-all ${isSubbed ? 'bg-green-50/50 border-green-200/60 text-green-800 shadow-sm' : 'bg-red-50/50 border-red-200/60 text-red-800'}`}>
                                    <span className="truncate pr-2">{student}</span>
@@ -1692,7 +1632,7 @@ export default function App() {
                                  </div>
                                );
                              })}
-                             {stat.students.length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
+                             {(stat.students || []).length === 0 && <div className="text-center text-xs text-gray-400 py-4 font-medium">Tiada pelajar dalam kelas ini.</div>}
                           </div>
                         )}
                       </div>

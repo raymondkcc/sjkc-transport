@@ -692,8 +692,8 @@ export default function App() {
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    const correctPassword = (typeof import !== 'undefined' && import.meta && import.meta.env) ? import.meta.env.VITE_ADMIN_PASSWORD : '';
-    if (adminPwd === correctPassword && correctPassword !== '') {
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || '';
+    if (adminPwd === correctPassword && correctPassword) {
       setIsAdmin(true);
       setView('admin');
       setAdminTab('submissions'); 

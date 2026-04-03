@@ -211,11 +211,14 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
             <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
-              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => (
-                <option key={driver.id || i} value={driver.nickname}>
-                  {driver.nickname} ({(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})
-                </option>
-              ))}
+              {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => {
+                const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
+                return (
+                  <option key={driver.id || i} value={label}>
+                    {label}
+                  </option>
+                );
+              })}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
@@ -265,11 +268,14 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               <>
                 <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriver} onChange={(e) => handleChange('leaveDriver', e.target.value)}>
                   <option value="">Pilih Pemandu / 请选择司机</option>
-                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => (
-                    <option key={driver.id || i} value={driver.nickname}>
-                      {driver.nickname} ({(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})
-                    </option>
-                  ))}
+                  {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => {
+                    const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
+                    return (
+                      <option key={driver.id || i} value={label}>
+                        {label}
+                      </option>
+                    );
+                  })}
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
@@ -759,7 +765,11 @@ export default function App() {
     const matchesDriver = !filterDriver || (sub.children || []).some(c => {
       const actualArrive = c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver;
       const actualLeave = c.sameDriver ? actualArrive : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver);
-      return actualArrive === filterDriver || actualLeave === filterDriver;
+      
+      const arrMatch = actualArrive && (actualArrive.includes(filterDriver) || filterDriver.includes(actualArrive));
+      const leaveMatch = actualLeave && (actualLeave.includes(filterDriver) || filterDriver.includes(actualLeave));
+      
+      return arrMatch || leaveMatch;
     });
 
     return matchesQuery && matchesDriver;
@@ -903,7 +913,7 @@ export default function App() {
 
       {/* Admin: Edit Submission Modal */}
       {editingSub && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
+        <div className="fixed inset0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md transition-all duration-500">
           <div className="bg-white p-8 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 fade-in duration-300 ease-out custom-scrollbar">
             <h3 className="font-extrabold text-2xl mb-6 text-gray-900 tracking-tight">Edit Rekod / 编辑记录</h3>
             
@@ -1440,7 +1450,10 @@ export default function App() {
                   <div className="relative mb-5">
                     <select className="w-full p-3.5 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white focus:bg-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm transition-all duration-300 cursor-pointer" value={filterDriver} onChange={e => setFilterDriver(e.target.value)}>
                       <option value="">Semua Pemandu / 所有司机</option>
-                      {driversList.map((d) => <option key={d.id} value={d.nickname}>{d.nickname} ({(d.plates || [d.plate]).join(' / ')})</option>)}
+                      {driversList.map((d) => {
+                        const label = `${d.nickname} (${(d.plates || [d.plate]).filter(Boolean).join(' / ')})`;
+                        return <option key={d.id} value={label}>{label}</option>;
+                      })}
                     </select>
                   </div>
                   <div className="text-sm font-semibold text-gray-600 text-center bg-blue-50/50 border border-blue-100 py-3 rounded-xl">

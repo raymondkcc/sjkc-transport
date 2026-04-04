@@ -154,6 +154,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               handleChange('kelas', ''); 
               handleChange('name', ''); 
               
+              // Auto-fill session based on year
               if (['1', '2', '3'].includes(selectedYear)) {
                 handleChange('session', 'afternoon');
               } else if (['4', '5', '6'].includes(selectedYear)) {
@@ -257,34 +258,30 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
             
             {(data.hasAltArrive) && (
               <div className="mt-3 p-4 bg-green-50/50 rounded-xl border border-green-200 animate-in fade-in slide-in-from-top-2">
-                
-                {data.arriveGate === 'A/A1' && (
-                  <div className={data.arriveGateAlt ? "mb-3" : ""}>
-                    <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Gate Pemandu Extra / 额外司机校门</label>
-                    <select className="w-full p-3 border border-green-300 rounded-xl hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveGateAlt || ''} onChange={(e) => { handleChange('arriveGateAlt', e.target.value); handleChange('arriveDriverAlt', ''); }}>
-                      <option value="">Pilih Gate Extra / 选择校门</option>
-                      <option value="A3">Gate A3</option>
-                      <option value="B">Gate B</option>
-                    </select>
-                  </div>
-                )}
+                <div className="mb-3">
+                  <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Gate Pemandu Extra / 额外司机校门</label>
+                  <select className="w-full p-3 border border-green-300 rounded-xl hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveGateAlt || ''} onChange={(e) => { handleChange('arriveGateAlt', e.target.value); handleChange('arriveDriverAlt', ''); }}>
+                    <option value="">Pilih Gate / 选择校门 (Sama seperti utama)</option>
+                    <option value="A/A1">Gate A/A1</option>
+                    <option value="A3">Gate A3</option>
+                    <option value="B">Gate B</option>
+                  </select>
+                </div>
 
-                {(data.arriveGate !== 'A/A1' || data.arriveGateAlt) && (
-                  <div className="animate-in fade-in slide-in-from-top-2">
-                    <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu Extra / 额外司机</label>
-                    <select className="w-full p-3 border border-green-300 rounded-xl hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriverAlt || ''} onChange={(e) => handleChange('arriveDriverAlt', e.target.value)}>
-                      <option value="">Pilih Pemandu / 请选择司机</option>
-                      {driversList.filter(d => d.gate === (data.arriveGate === 'A/A1' ? data.arriveGateAlt : data.arriveGate)).map((driver, i) => {
-                        const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
-                        return <option key={driver.id || i} value={label}>{label}</option>;
-                      })}
-                      <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
-                    </select>
-                    {data.arriveDriverAlt === 'others' && (
-                       <input type="text" className="w-full mt-3 p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverAltOther || ''} onChange={e => handleChange('arriveDriverAltOther', e.target.value)} placeholder="Sila nyatakan..." />
-                    )}
-                  </div>
-                )}
+                <div className="animate-in fade-in slide-in-from-top-2">
+                  <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu Extra / 额外司机</label>
+                  <select className="w-full p-3 border border-green-300 rounded-xl hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriverAlt || ''} onChange={(e) => handleChange('arriveDriverAlt', e.target.value)}>
+                    <option value="">Pilih Pemandu / 请选择司机</option>
+                    {driversList.filter(d => d.gate === (data.arriveGateAlt || data.arriveGate)).map((driver, i) => {
+                      const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
+                      return <option key={driver.id || i} value={label}>{label}</option>;
+                    })}
+                    <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
+                  </select>
+                  {data.arriveDriverAlt === 'others' && (
+                     <input type="text" className="w-full mt-3 p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverAltOther || ''} onChange={e => handleChange('arriveDriverAltOther', e.target.value)} placeholder="Sila nyatakan..." />
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -362,33 +359,27 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
                   
                   {(data.hasAltLeave) && (
                     <div className="mt-3 p-4 bg-orange-50/50 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-top-2">
-                      
-                      {data.leaveGate === 'A/A1' && (
-                        <div className={data.leaveGateAlt ? "mb-3" : ""}>
-                          <label className="block text-xs font-bold mb-1.5 text-orange-800 uppercase tracking-wider">Gate Pemandu Extra / 额外司机校门</label>
-                          <select className="w-full p-3 border border-orange-300 rounded-xl hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveGateAlt || ''} onChange={(e) => { handleChange('leaveGateAlt', e.target.value); handleChange('leaveDriverAlt', ''); }}>
-                            <option value="">Pilih Gate Extra / 选择校门</option>
-                            <option value="A3">Gate A3</option>
-                            <option value="B">Gate B</option>
-                          </select>
-                        </div>
-                      )}
+                      <div className="mb-3">
+                        <label className="block text-xs font-bold mb-1.5 text-orange-800 uppercase tracking-wider">Gate Pemandu Extra / 额外司机校门</label>
+                        <select className="w-full p-3 border border-orange-300 rounded-xl hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveGateAlt || ''} onChange={(e) => { handleChange('leaveGateAlt', e.target.value); handleChange('leaveDriverAlt', ''); }}>
+                          <option value="">Pilih Gate / 选择校门 (Sama seperti utama)</option>
+                          <option value="A/A1">Gate A/A1</option>
+                          <option value="A3">Gate A3</option>
+                          <option value="B">Gate B</option>
+                        </select>
+                      </div>
 
-                      {(data.leaveGate !== 'A/A1' || data.leaveGateAlt) && (
-                        <div className="animate-in fade-in slide-in-from-top-2">
-                          <label className="block text-xs font-bold mb-1.5 text-orange-800 uppercase tracking-wider">Pemandu Extra / 额外司机</label>
-                          <select className="w-full p-3 border border-orange-300 rounded-xl hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriverAlt || ''} onChange={(e) => handleChange('leaveDriverAlt', e.target.value)}>
-                            <option value="">Pilih Pemandu / 请选择司机</option>
-                            {driversList.filter(d => d.gate === (data.leaveGate === 'A/A1' ? data.leaveGateAlt : data.leaveGate)).map((driver, i) => {
-                              const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
-                              return <option key={driver.id || i} value={label}>{label}</option>;
-                            })}
-                            <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
-                          </select>
-                          {data.leaveDriverAlt === 'others' && (
-                             <input type="text" className="w-full mt-3 p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverAltOther || ''} onChange={e => handleChange('leaveDriverAltOther', e.target.value)} placeholder="Sila nyatakan..." />
-                          )}
-                        </div>
+                      <label className="block text-xs font-bold mb-1.5 text-orange-800 uppercase tracking-wider">Pemandu Extra / 额外司机</label>
+                      <select className="w-full p-3 border border-orange-300 rounded-xl hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriverAlt || ''} onChange={(e) => handleChange('leaveDriverAlt', e.target.value)}>
+                        <option value="">Pilih Pemandu / 请选择司机</option>
+                        {driversList.filter(d => d.gate === (data.leaveGateAlt || data.leaveGate)).map((driver, i) => {
+                          const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
+                          return <option key={driver.id || i} value={label}>{label}</option>;
+                        })}
+                        <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
+                      </select>
+                      {data.leaveDriverAlt === 'others' && (
+                         <input type="text" className="w-full mt-3 p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverAltOther || ''} onChange={e => handleChange('leaveDriverAltOther', e.target.value)} placeholder="Sila nyatakan..." />
                       )}
                     </div>
                   )}
@@ -1134,25 +1125,24 @@ export default function App() {
                          
                          {c.hasAltArrive && (
                             <div className="mt-2 p-2 bg-green-50/50 rounded-lg border border-green-200">
-                              {c.arriveGate === 'A/A1' && (
-                                <select className="w-full mb-2 p-2 border border-green-200 rounded-lg outline-none text-xs font-semibold text-green-800" value={c.arriveGateAlt || ''} onChange={(e) => {
-                                    const newC = [...editingSub.children];
-                                    newC[idx].arriveGateAlt = e.target.value;
-                                    newC[idx].arriveDriverAlt = '';
-                                    setEditingSub({...editingSub, children: newC});
-                                }}>
-                                  <option value="">Pilih Gate Extra</option>
-                                  <option value="A3">Gate A3</option>
-                                  <option value="B">Gate B</option>
-                                </select>
-                              )}
+                              <select className="w-full mb-2 p-2 border border-green-200 rounded-lg outline-none text-xs font-semibold text-green-800" value={c.arriveGateAlt || ''} onChange={(e) => {
+                                  const newC = [...editingSub.children];
+                                  newC[idx].arriveGateAlt = e.target.value;
+                                  newC[idx].arriveDriverAlt = '';
+                                  setEditingSub({...editingSub, children: newC});
+                              }}>
+                                <option value="">Gate Extra (Ikut Utama)</option>
+                                <option value="A/A1">Gate A/A1</option>
+                                <option value="A3">Gate A3</option>
+                                <option value="B">Gate B</option>
+                              </select>
                               <select className="w-full p-2 border border-green-200 rounded-lg outline-none text-xs font-semibold text-green-800" value={c.arriveDriverAlt || ''} onChange={(e) => {
                                   const newC = [...editingSub.children];
                                   newC[idx].arriveDriverAlt = e.target.value;
                                   setEditingSub({...editingSub, children: newC});
                               }}>
                                  <option value="">Pilih Pemandu Extra</option>
-                                 {driversList.filter(d => d.gate === (c.arriveGate === 'A/A1' ? c.arriveGateAlt : c.arriveGate)).map((driver, i) => {
+                                 {driversList.filter(d => d.gate === (c.arriveGateAlt || c.arriveGate)).map((driver, i) => {
                                     const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
                                     return <option key={driver.id || i} value={label}>{label}</option>;
                                  })}
@@ -1204,14 +1194,15 @@ export default function App() {
 
                          {(c.sameDriver ? c.hasAltArrive : c.hasAltLeave) && (
                             <div className="mt-2 p-2 bg-orange-50/50 rounded-lg border border-orange-200">
-                              {c.leaveGate === 'A/A1' && !c.sameDriver && (
+                              {!c.sameDriver && (
                                 <select className="w-full mb-2 p-2 border border-orange-200 rounded-lg outline-none text-xs font-semibold text-orange-800" value={c.leaveGateAlt || ''} onChange={(e) => {
                                     const newC = [...editingSub.children];
                                     newC[idx].leaveGateAlt = e.target.value;
                                     newC[idx].leaveDriverAlt = '';
                                     setEditingSub({...editingSub, children: newC});
                                 }}>
-                                  <option value="">Pilih Gate Extra</option>
+                                  <option value="">Gate Extra (Ikut Utama)</option>
+                                  <option value="A/A1">Gate A/A1</option>
                                   <option value="A3">Gate A3</option>
                                   <option value="B">Gate B</option>
                                 </select>
@@ -1225,7 +1216,7 @@ export default function App() {
                                     setEditingSub({...editingSub, children: newC});
                                 }}>
                                  <option value="">Pilih Pemandu Extra</option>
-                                 {driversList.filter(d => d.gate === (c.sameDriver ? (c.arriveGate === 'A/A1' ? c.arriveGateAlt : c.arriveGate) : (c.leaveGate === 'A/A1' ? c.leaveGateAlt : c.leaveGate))).map((driver, i) => {
+                                 {driversList.filter(d => d.gate === (c.sameDriver ? (c.arriveGateAlt || c.arriveGate) : (c.leaveGateAlt || c.leaveGate))).map((driver, i) => {
                                     const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
                                     return <option key={driver.id || i} value={label}>{label}</option>;
                                  })}

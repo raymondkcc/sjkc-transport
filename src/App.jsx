@@ -152,6 +152,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
               handleChange('kelas', ''); 
               handleChange('name', ''); 
               
+              // Auto-fill session based on year
               if (['1', '2', '3'].includes(selectedYear)) {
                 handleChange('session', 'afternoon');
               } else if (['4', '5', '6'].includes(selectedYear)) {
@@ -220,22 +221,44 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         </div>
         {(data.arriveGate === 'A3' || data.arriveGate === 'B') && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500 pt-2">
-            <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu / 载送司机</label>
+            <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu Utama / 主要司机</label>
             <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriver} onChange={(e) => handleChange('arriveDriver', e.target.value)}>
               <option value="">Pilih Pemandu / 请选择司机</option>
               {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => {
                 const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
                 return (
-                  <option key={driver.id || i} value={label}>
-                    {label}
-                  </option>
+                  <option key={driver.id || i} value={label}>{label}</option>
                 );
               })}
               <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
             </select>
             {data.arriveDriver === 'others' && (
-               <input type="text" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
+               <input type="text" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in mb-3" value={data.arriveDriverOther} onChange={e => handleChange('arriveDriverOther', e.target.value)} />
             )}
+
+            {/* Alternative Arrival Driver */}
+            <div className="mt-3">
+              <label className="flex items-center text-xs font-bold text-green-700 cursor-pointer bg-green-50/80 p-3 rounded-xl border border-green-200 hover:bg-green-100 transition-colors w-fit shadow-sm">
+                <input type="checkbox" checked={data.hasAltArrive || false} onChange={(e) => handleChange('hasAltArrive', e.target.checked)} className="mr-2 accent-green-600 w-4 h-4 cursor-pointer" />
+                Pemandu Extra / 额外司机
+              </label>
+              {(data.hasAltArrive) && (
+                <div className="mt-3 p-4 bg-green-50/50 rounded-xl border border-green-200 animate-in fade-in slide-in-from-top-2">
+                  <label className="block text-xs font-bold mb-1.5 text-green-800 uppercase tracking-wider">Pemandu Extra / 额外司机</label>
+                  <select className="w-full p-3 border border-green-300 rounded-xl mb-3 hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.arriveDriverAlt || ''} onChange={(e) => handleChange('arriveDriverAlt', e.target.value)}>
+                    <option value="">Pilih Pemandu / 请选择司机</option>
+                    {driversList.filter(d => d.gate === data.arriveGate).map((driver, i) => {
+                      const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
+                      return <option key={driver.id || i} value={label}>{label}</option>;
+                    })}
+                    <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
+                  </select>
+                  {data.arriveDriverAlt === 'others' && (
+                     <input type="text" className="w-full p-3 border border-green-300 rounded-xl outline-none hover:border-green-400 focus:ring-4 focus:ring-green-500/20 focus:border-green-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.arriveDriverAltOther || ''} onChange={e => handleChange('arriveDriverAltOther', e.target.value)} placeholder="Sila nyatakan..." />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -267,7 +290,7 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
         {(data.leaveGate === 'A3' || data.leaveGate === 'B') && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500 pt-2">
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-xs font-bold text-orange-800 uppercase tracking-wider">Pemandu / 载送司机</label>
+              <label className="block text-xs font-bold text-orange-800 uppercase tracking-wider">Pemandu Utama / 主要司机</label>
               {(data.arriveGate === 'A3' || data.arriveGate === 'B') && (
                 <label className="flex items-center text-xs font-bold text-orange-800 bg-white px-3 py-1.5 rounded-lg border border-orange-200 cursor-pointer shadow-sm hover:bg-orange-100 hover:border-orange-300 transition-all duration-300">
                   <input type="checkbox" className="mr-2 accent-orange-600 w-4 h-4 cursor-pointer transition-transform hover:scale-110" checked={data.sameDriver} onChange={(e) => handleChange('sameDriver', e.target.checked)} />
@@ -291,13 +314,37 @@ const ChildForm = ({ index, data, onChange, availableClasses, studentsDict, isLo
                   <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
                 </select>
                 {data.leaveDriver === 'others' && (
-                   <input type="text" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
+                   <input type="text" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in mb-3" value={data.leaveDriverOther} onChange={e => handleChange('leaveDriverOther', e.target.value)} />
                 )}
+
+                {/* Alternative Departure Driver */}
+                <div className="mt-3">
+                  <label className="flex items-center text-xs font-bold text-orange-700 cursor-pointer bg-orange-50/80 p-3 rounded-xl border border-orange-200 hover:bg-orange-100 transition-colors w-fit shadow-sm">
+                    <input type="checkbox" checked={data.hasAltLeave || false} onChange={(e) => handleChange('hasAltLeave', e.target.checked)} className="mr-2 accent-orange-600 w-4 h-4 cursor-pointer" />
+                    Pemandu Extra / 额外司机
+                  </label>
+                  {(data.hasAltLeave) && (
+                    <div className="mt-3 p-4 bg-orange-50/50 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-top-2">
+                      <label className="block text-xs font-bold mb-1.5 text-orange-800 uppercase tracking-wider">Pemandu Extra / 额外司机</label>
+                      <select className="w-full p-3 border border-orange-300 rounded-xl mb-3 hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white shadow-sm transition-all duration-300 cursor-pointer" value={data.leaveDriverAlt || ''} onChange={(e) => handleChange('leaveDriverAlt', e.target.value)}>
+                        <option value="">Pilih Pemandu / 请选择司机</option>
+                        {driversList.filter(d => d.gate === data.leaveGate).map((driver, i) => {
+                          const label = `${driver.nickname} (${(driver.plates || [driver.plate]).filter(Boolean).join(' / ')})`;
+                          return <option key={driver.id || i} value={label}>{label}</option>;
+                        })}
+                        <option value="others">Lain-lain / 其他 (Sila Nyatakan)</option>
+                      </select>
+                      {data.leaveDriverAlt === 'others' && (
+                         <input type="text" className="w-full p-3 border border-orange-300 rounded-xl outline-none hover:border-orange-400 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 bg-white shadow-sm transition-all duration-300 animate-in fade-in" value={data.leaveDriverAltOther || ''} onChange={e => handleChange('leaveDriverAltOther', e.target.value)} placeholder="Sila nyatakan..." />
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <div className="p-4 bg-white border border-orange-200 rounded-xl text-sm text-gray-500 italic flex items-center shadow-inner animate-in fade-in zoom-in-95 duration-300">
                 <span className="bg-gray-100 text-gray-500 w-7 h-7 rounded-full flex items-center justify-center mr-3 shadow-sm"><Bus size={14}/></span>
-                Menggunakan pemandu yang sama (Datang).
+                Menggunakan tetapan yang sama (Datang & Extra).
               </div>
             )}
           </div>
@@ -343,7 +390,12 @@ export default function App() {
   const [numKids, setNumKids] = useState(1);
   const [parentInfo, setParentInfo] = useState({ name: '', ic: '', phone: '', relation: '', address: '' });
   
-  const initialChildState = { year: '', kelas: '', name: '', session: '', arriveGate: '', arriveDriver: '', arriveDriverOther: '', leaveGate: '', leaveDriver: '', leaveDriverOther: '', sameDriver: false, isRound2: false };
+  const initialChildState = { 
+    year: '', kelas: '', name: '', session: '', 
+    arriveGate: '', arriveDriver: '', arriveDriverOther: '', hasAltArrive: false, arriveDriverAlt: '', arriveDriverAltOther: '',
+    leaveGate: '', leaveDriver: '', leaveDriverOther: '', hasAltLeave: false, leaveDriverAlt: '', leaveDriverAltOther: '',
+    sameDriver: false, isRound2: false 
+  };
   const [childrenInfo, setChildrenInfo] = useState([initialChildState]);
 
   const [driverInfo, setDriverInfo] = useState({ fullName: '', nickname: '', phones: [''], plates: [''], gate: '' });
@@ -352,7 +404,6 @@ export default function App() {
   const [studentsDict, setStudentsDict] = useState({});
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
-  // LAZY LOAD FLAGS - Prevents re-fetching if we already have it
   const [hasFetchedDrivers, setHasFetchedDrivers] = useState(false);
   const [hasFetchedSubmissions, setHasFetchedSubmissions] = useState(false);
 
@@ -360,7 +411,6 @@ export default function App() {
     document.title = "SJKC Sin Ming Transport System";
   }, []);
 
-  // Global Listener for Driver Form Status
   useEffect(() => {
     const configRef = doc(db, "app_settings", "config");
     const unsubscribe = onSnapshot(configRef, (docSnap) => {
@@ -382,7 +432,6 @@ export default function App() {
       if (!forceRefresh) {
         const cached = localStorage.getItem(DRIVER_CACHE_KEY);
         const cacheTime = localStorage.getItem(DRIVER_CACHE_TIME);
-        // OPTIMIZATION: Drivers cache increased to 24 hours (86400000 ms)
         if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 86400000) {
           setDriversList(JSON.parse(cached));
           setHasFetchedDrivers(true);
@@ -417,7 +466,6 @@ export default function App() {
       if (!forceRefresh) {
         const cached = localStorage.getItem(SUB_CACHE_KEY);
         const cacheTime = localStorage.getItem(SUB_CACHE_TIME);
-        // OPTIMIZATION: Public cache increased to 1 hour (3600000 ms). 
         if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 3600000) {
           setSubmissions(JSON.parse(cached));
           setHasFetchedSubmissions(true);
@@ -444,7 +492,6 @@ export default function App() {
     }
   };
 
-  // INITIALIZATION - Removed massive fetches from here!
   useEffect(() => {
     if (!localStorage.getItem('hideTransportDisclaimer')) {
       setShowDisclaimer(true);
@@ -523,7 +570,6 @@ export default function App() {
     initDatabasesAndFetch();
   }, []);
 
-  // OPTIMIZATION: Lazy Load exactly when needed
   useEffect(() => {
     if (view === 'parentForm') {
       fetchDriversList();
@@ -558,7 +604,6 @@ export default function App() {
         addedDrivers.push({ id: docRef.id, ...driver });
       }
       setAlertMessage("Semua 40 Pemandu telah berjaya diimport!");
-      // OPTIMIZATION: Update local state instead of re-fetching
       setDriversList([...addedDrivers, ...driversList].sort((a, b) => a.nickname.localeCompare(b.nickname)));
     } catch (err) {
       console.error("Error importing drivers:", err);
@@ -601,7 +646,7 @@ export default function App() {
       const docRef = await addDoc(collection(db, "transport_submissions"), {
         parent: parentInfo,
         children: childrenInfo,
-        createdAt: serverTimestamp() // We leave this as server time, will display nicely in admin later
+        createdAt: serverTimestamp() 
       });
       
       const newSub = { id: docRef.id, parent: parentInfo, children: childrenInfo, createdAt: new Date() };
@@ -672,7 +717,6 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       
-      // OPTIMIZATION: Update local state instead of re-fetching
       const newDriver = {
         id: docRef.id,
         fullName: driverInfo.fullName,
@@ -710,7 +754,6 @@ export default function App() {
         plates: cleanedPlates
       });
       
-      // OPTIMIZATION: Update local state instead of re-fetching entire list
       setDriversList(prev => prev.map(d => d.id === editingDriver.id ? {
          ...d, 
          fullName: editingDriver.fullName, 
@@ -735,7 +778,6 @@ export default function App() {
         children: editingSub.children
       });
       
-      // OPTIMIZATION: Update local state instead of re-fetching 500+ documents
       setSubmissions(prev => prev.map(s => s.id === editingSub.id ? editingSub : s));
       
       setAlertMessage("Rekod berjaya dikemas kini! \n 记录更新成功！");
@@ -778,7 +820,6 @@ export default function App() {
   const handleDeleteSubmission = async (id) => {
     try {
       await deleteDoc(doc(db, "transport_submissions", id));
-      // State is updated correctly here without re-fetching!
       setSubmissions(prev => prev.filter(s => s.id !== id));
       setDeleteSubmissionId(null);
     } catch (error) {
@@ -792,7 +833,6 @@ export default function App() {
     if (!deleteDriverId) return;
     try {
       await deleteDoc(doc(db, "drivers", deleteDriverId));
-      // State updated correctly, removed the bad fetchDriversList(true) call
       setDriversList(prev => prev.filter(d => d.id !== deleteDriverId));
       setDeleteDriverId(null);
     } catch (error) {
@@ -822,12 +862,18 @@ export default function App() {
 
     const matchesDriver = !filterDriver || (sub.children || []).some(c => {
       const actualArrive = c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver;
+      const actualArriveAlt = c.arriveDriverAlt === 'others' ? c.arriveDriverAltOther : c.arriveDriverAlt;
+      
       const actualLeave = c.sameDriver ? actualArrive : (c.leaveDriver === 'others' ? c.leaveDriverOther : c.leaveDriver);
+      const actualLeaveAlt = c.sameDriver ? actualArriveAlt : (c.leaveDriverAlt === 'others' ? c.leaveDriverAltOther : c.leaveDriverAlt);
       
       const arrMatch = actualArrive && (actualArrive.includes(filterDriver) || filterDriver.includes(actualArrive));
-      const leaveMatch = actualLeave && (actualLeave.includes(filterDriver) || filterDriver.includes(actualLeave));
+      const arrAltMatch = c.hasAltArrive && actualArriveAlt && (actualArriveAlt.includes(filterDriver) || filterDriver.includes(actualArriveAlt));
       
-      return arrMatch || leaveMatch;
+      const leaveMatch = actualLeave && (actualLeave.includes(filterDriver) || filterDriver.includes(actualLeave));
+      const leaveAltMatch = (c.sameDriver ? c.hasAltArrive : c.hasAltLeave) && actualLeaveAlt && (actualLeaveAlt.includes(filterDriver) || filterDriver.includes(actualLeaveAlt));
+      
+      return arrMatch || arrAltMatch || leaveMatch || leaveAltMatch;
     });
     return matchesQuery && matchesDriver;
   });
@@ -1000,25 +1046,95 @@ export default function App() {
                          }} placeholder="Kelas" />
                        </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Datang ({c.arriveGate})</label>
-                         <input className="w-full p-3 border border-green-200 rounded-xl bg-green-50/30 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" value={c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')} onChange={(e) => {
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       {/* Edit Datang */}
+                       <div className="bg-green-50/40 p-3 rounded-xl border border-green-100">
+                         <div className="flex justify-between items-center mb-2">
+                           <div className="flex items-center gap-1.5 ml-1">
+                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Datang</label>
+                             <select className="text-[10px] font-bold bg-white border border-green-200 rounded-md px-1 py-0.5 outline-none text-green-700" value={c.arriveGate || ''} onChange={(e) => {
+                                const newC = [...editingSub.children];
+                                newC[idx].arriveGate = e.target.value;
+                                setEditingSub({...editingSub, children: newC});
+                             }}>
+                                <option value="A/A1">Gate A/A1</option>
+                                <option value="A3 (Parents)">Gate A3 (Parents)</option>
+                                <option value="A3">Gate A3 (Transporter)</option>
+                                <option value="B">Gate B</option>
+                             </select>
+                           </div>
+                           <label className="text-[10px] font-bold text-blue-600 cursor-pointer flex items-center">
+                              <input type="checkbox" className="mr-1" checked={c.hasAltArrive || false} onChange={(e) => {
+                                 const newC = [...editingSub.children];
+                                 newC[idx].hasAltArrive = e.target.checked;
+                                 setEditingSub({...editingSub, children: newC});
+                              }}/> +Extra
+                           </label>
+                         </div>
+                         <input className="w-full p-3 border border-green-200 rounded-xl bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" value={c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].arriveDriver = 'others'; 
                             newChildren[idx].arriveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Nama Pemandu" />
+                         
+                         {c.hasAltArrive && (
+                            <input className="w-full mt-2 p-3 border border-green-200 rounded-xl bg-green-50/30 focus:bg-white focus:ring-4 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm font-semibold" 
+                              value={c.arriveDriverAlt === 'others' ? (c.arriveDriverAltOther || '') : (c.arriveDriverAlt || '')} 
+                              onChange={(e) => {
+                                 const newC = [...editingSub.children];
+                                 newC[idx].arriveDriverAlt = 'others'; 
+                                 newC[idx].arriveDriverAltOther = e.target.value;
+                                 setEditingSub({...editingSub, children: newC});
+                              }} placeholder="Pemandu Extra (Datang)" />
+                         )}
                        </div>
-                       <div>
-                         <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1 block">Pemandu Balik ({c.leaveGate})</label>
-                         <input className="w-full p-3 border border-orange-200 rounded-xl bg-orange-50/30 focus:bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" value={c.sameDriver ? (c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')) : (c.leaveDriver === 'others' ? (c.leaveDriverOther || '') : (c.leaveDriver || ''))} onChange={(e) => {
+
+                       {/* Edit Balik */}
+                       <div className="bg-orange-50/40 p-3 rounded-xl border border-orange-100">
+                         <div className="flex justify-between items-center mb-2">
+                           <div className="flex items-center gap-1.5 ml-1">
+                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Balik</label>
+                             <select className="text-[10px] font-bold bg-white border border-orange-200 rounded-md px-1 py-0.5 outline-none text-orange-700" value={c.leaveGate || ''} onChange={(e) => {
+                                const newC = [...editingSub.children];
+                                newC[idx].leaveGate = e.target.value;
+                                setEditingSub({...editingSub, children: newC});
+                             }}>
+                                <option value="A/A1">Gate A/A1</option>
+                                <option value="A3 (Parents)">Gate A3 (Parents)</option>
+                                <option value="A3">Gate A3 (Transporter)</option>
+                                <option value="B">Gate B</option>
+                             </select>
+                           </div>
+                           <label className="text-[10px] font-bold text-blue-600 cursor-pointer flex items-center">
+                              <input type="checkbox" className="mr-1" checked={c.sameDriver ? (c.hasAltArrive || false) : (c.hasAltLeave || false)} onChange={(e) => {
+                                 const newC = [...editingSub.children];
+                                 newC[idx].sameDriver = false; 
+                                 newC[idx].hasAltLeave = e.target.checked;
+                                 setEditingSub({...editingSub, children: newC});
+                              }}/> +Extra
+                           </label>
+                         </div>
+                         <input className="w-full p-3 border border-orange-200 rounded-xl bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" value={c.sameDriver ? (c.arriveDriver === 'others' ? (c.arriveDriverOther || '') : (c.arriveDriver || '')) : (c.leaveDriver === 'others' ? (c.leaveDriverOther || '') : (c.leaveDriver || ''))} onChange={(e) => {
                             const newChildren = [...editingSub.children];
                             newChildren[idx].sameDriver = false; 
                             newChildren[idx].leaveDriver = 'others';
                             newChildren[idx].leaveDriverOther = e.target.value;
                             setEditingSub({...editingSub, children: newChildren});
                          }} placeholder="Nama Pemandu" />
+
+                         {(c.sameDriver ? c.hasAltArrive : c.hasAltLeave) && (
+                            <input className="w-full mt-2 p-3 border border-orange-200 rounded-xl bg-orange-50/30 focus:bg-white focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm font-semibold" 
+                              value={c.sameDriver ? (c.arriveDriverAlt === 'others' ? (c.arriveDriverAltOther || '') : (c.arriveDriverAlt || '')) : (c.leaveDriverAlt === 'others' ? (c.leaveDriverAltOther || '') : (c.leaveDriverAlt || ''))} 
+                              onChange={(e) => {
+                                 const newC = [...editingSub.children];
+                                 newC[idx].sameDriver = false; 
+                                 newC[idx].leaveDriverAlt = 'others'; 
+                                 newC[idx].leaveDriverAltOther = e.target.value;
+                                 setEditingSub({...editingSub, children: newC});
+                              }} placeholder="Pemandu Extra (Balik)" />
+                         )}
                        </div>
                     </div>
                  </div>
@@ -1562,6 +1678,9 @@ export default function App() {
                         {(sub.children || []).map((c, i) => {
                           const actualLeaveDriver = c.sameDriver ? c.arriveDriver : c.leaveDriver;
                           const actualLeaveOther = c.sameDriver ? c.arriveDriverOther : c.leaveDriverOther;
+                          const actualHasAltLeave = c.sameDriver ? c.hasAltArrive : c.hasAltLeave;
+                          const actualLeaveAlt = c.sameDriver ? c.arriveDriverAlt : c.leaveDriverAlt;
+                          const actualLeaveAltOther = c.sameDriver ? c.arriveDriverAltOther : c.leaveDriverAltOther;
                           
                           return (
                             <div key={i} className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 hover:bg-white hover:border-gray-200 transition-colors duration-300">
@@ -1573,11 +1692,21 @@ export default function App() {
                                 <div className="bg-green-50/50 text-green-900 p-3 rounded-xl border border-green-100">
                                   <span className="block text-green-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Datang ({c.arriveGate})</span>
                                   {c.arriveDriver === 'others' ? c.arriveDriverOther : c.arriveDriver || "-"}
+                                  {c.hasAltArrive && (
+                                    <div className="mt-1.5 pt-1.5 border-t border-green-200/60 text-[11px] font-medium text-green-800 flex items-start">
+                                      <span className="font-bold mr-1">Extra:</span> {c.arriveDriverAlt === 'others' ? c.arriveDriverAltOther : c.arriveDriverAlt || "-"}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="bg-orange-50/50 text-orange-900 p-3 rounded-xl border border-orange-100">
                                   <span className="block text-orange-600/80 mb-1 font-bold uppercase tracking-wider text-[10px]">Balik ({c.leaveGate})</span>
                                   {actualLeaveDriver === 'others' ? actualLeaveOther : actualLeaveDriver || "-"}
                                   {c.isRound2 && <span className="ml-1.5 text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">(Pusingan 2)</span>}
+                                  {actualHasAltLeave && (
+                                    <div className="mt-1.5 pt-1.5 border-t border-orange-200/60 text-[11px] font-medium text-orange-800 flex items-start">
+                                      <span className="font-bold mr-1">Extra:</span> {actualLeaveAlt === 'others' ? actualLeaveAltOther : actualLeaveAlt || "-"}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1684,7 +1813,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* TIMESTAMP FOOTER */}
                       <div className="bg-gray-50/80 border-t border-gray-100 p-3 text-center">
                         <div className="text-[10px] font-mono text-gray-400 font-medium">
                           🕒 Didaftarkan: {formatTimestamp(driver.createdAt)}
